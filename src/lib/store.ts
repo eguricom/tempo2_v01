@@ -162,9 +162,23 @@ export const useAppStore = create<AppState>()(
   ),
 );
 
+function segMinutes(seg: ShiftSegment): number {
+  const [sh, sm] = seg.start.split(":").map(Number);
+  const [eh, em] = seg.end.split(":").map(Number);
+  return Math.max(0, eh * 60 + em - (sh * 60 + sm));
+}
+
 export function shiftMinutes(s: Shift): number {
+  if (s.segments && s.segments.length) {
+    return s.segments.filter((x) => x.type === "work").reduce((a, x) => a + segMinutes(x), 0);
+  }
   if (!s.end) return 0;
   return Math.max(0, Math.round((new Date(s.end).getTime() - new Date(s.start).getTime()) / 60000));
+}
+
+export function breakMinutes(s: Shift): number {
+  if (!s.segments) return 0;
+  return s.segments.filter((x) => x.type === "break").reduce((a, x) => a + segMinutes(x), 0);
 }
 
 export function formatDuration(mins: number) {
@@ -172,3 +186,4 @@ export function formatDuration(mins: number) {
   const m = mins % 60;
   return `${h}h ${m}m`;
 }
+
