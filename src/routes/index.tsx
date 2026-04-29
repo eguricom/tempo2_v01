@@ -188,6 +188,11 @@ function HomePage() {
             </CardContent>
           </Card>
         </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Tu calendario</h2>
+          <ShiftsCalendar userId={currentUserId} />
+        </div>
       </main>
     </>
   );
