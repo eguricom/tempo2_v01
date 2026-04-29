@@ -6,7 +6,6 @@ import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { BulkShiftDialog } from "@/components/BulkShiftDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -17,11 +16,6 @@ import {
 } from "@/components/ui/table";
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -36,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
 import { Plus, Trash2, Pencil, Layers, Search } from "lucide-react";
-import { format, parseISO, eachDayOfInterval } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/jornadas")({
