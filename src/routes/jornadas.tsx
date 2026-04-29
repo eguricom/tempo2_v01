@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { ShiftsCalendar } from "@/components/ShiftsCalendar";
 import { ShiftFormDialog } from "@/components/ShiftFormDialog";
+import { BulkShiftDialog } from "@/components/BulkShiftDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
