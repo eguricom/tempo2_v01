@@ -60,7 +60,7 @@ function JornadasPage() {
       .filter((s) => {
         if (!search) return true;
         const u = users.find((x) => x.id === s.userId);
-        return (u?.name + u?.email).toLowerCase().includes(search.toLowerCase());
+        return `${u?.name ?? ""} ${u?.email ?? ""}`.toLowerCase().includes(search.toLowerCase());
       })
       .sort((a, b) => b.start.localeCompare(a.start));
   }, [shifts, search, userFilter, users]);
