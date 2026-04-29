@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { ShiftsCalendar } from "@/components/ShiftsCalendar";
+import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
@@ -77,10 +79,7 @@ function JornadasPage() {
               </DialogTrigger>
               <ShiftFormDialog
                 onClose={() => setOpenNew(false)}
-                onSave={(s) => {
-                  addShift(s);
-                  toast.success("Jornada añadida");
-                }}
+                onSave={(s) => { addShift(s); toast.success("Jornada añadida"); }}
               />
             </Dialog>
 
@@ -90,10 +89,7 @@ function JornadasPage() {
               </DialogTrigger>
               <BulkDialog
                 onClose={() => setOpenBulk(false)}
-                onSave={(arr) => {
-                  addShiftsBulk(arr);
-                  toast.success(`${arr.length} jornadas añadidas`);
-                }}
+                onSave={(arr) => { addShiftsBulk(arr); toast.success(`${arr.length} jornadas añadidas`); }}
               />
             </Dialog>
           </div>
@@ -120,71 +116,81 @@ function JornadasPage() {
           </div>
         </div>
 
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Inicio</TableHead>
-                <TableHead>Fin</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Observaciones</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
-                    No hay jornadas registradas todavía.
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtered.map((s) => {
-                const u = users.find((x) => x.id === s.userId);
-                return (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                          {u?.name.charAt(0)}
-                        </div>
-                        <span className="text-sm">{u?.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={s.status === "finished" ? "secondary" : "default"} className={s.status === "in_progress" ? "bg-warning text-warning-foreground" : ""}>
-                        {s.status === "finished" ? "Finalizada" : "En curso"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "dd/MM/yyyy")}</TableCell>
-                    <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "HH:mm")}</TableCell>
-                    <TableCell className="text-sm tabular-nums">{s.end ? format(parseISO(s.end), "HH:mm") : "—"}</TableCell>
-                    <TableCell className="text-sm font-medium tabular-nums">{formatDuration(shiftMinutes(s))}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{s.notes || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => setEditing(s)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          deleteShift(s.id);
-                          toast.success("Jornada eliminada");
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
+        <Tabs defaultValue="calendar">
+          <TabsList>
+            <TabsTrigger value="calendar">Calendario</TabsTrigger>
+            <TabsTrigger value="list">Listado</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="calendar" className="mt-4">
+            <ShiftsCalendar userId={userFilter === "all" ? undefined : userFilter} />
+          </TabsContent>
+
+          <TabsContent value="list" className="mt-4">
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Inicio</TableHead>
+                    <TableHead>Fin</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Observaciones</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                        No hay jornadas registradas todavía.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filtered.map((s) => {
+                    const u = users.find((x) => x.id === s.userId);
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                              {u?.name.charAt(0)}
+                            </div>
+                            <span className="text-sm">{u?.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={s.status === "finished" ? "secondary" : "default"} className={s.status === "in_progress" ? "bg-warning text-warning-foreground" : ""}>
+                            {s.status === "finished" ? "Finalizada" : "En curso"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "dd/MM/yyyy")}</TableCell>
+                        <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "HH:mm")}</TableCell>
+                        <TableCell className="text-sm tabular-nums">{s.end ? format(parseISO(s.end), "HH:mm") : "—"}</TableCell>
+                        <TableCell className="text-sm font-medium tabular-nums">{formatDuration(shiftMinutes(s))}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{s.notes || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => setEditing(s)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => { deleteShift(s.id); toast.success("Jornada eliminada"); }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
@@ -192,80 +198,12 @@ function JornadasPage() {
           <ShiftFormDialog
             initial={editing}
             onClose={() => setEditing(null)}
-            onSave={(s) => {
-              updateShift(editing.id, s);
-              toast.success("Jornada actualizada");
-            }}
+            onSave={(s) => { updateShift(editing.id, s); toast.success("Jornada actualizada"); }}
+            onDelete={() => { deleteShift(editing.id); toast.success("Jornada eliminada"); setEditing(null); }}
           />
         )}
       </Dialog>
     </>
-  );
-}
-
-function ShiftFormDialog({
-  initial,
-  onClose,
-  onSave,
-}: {
-  initial?: Shift;
-  onClose: () => void;
-  onSave: (s: Omit<Shift, "id">) => void;
-}) {
-  const { users, currentUserId } = useAppStore();
-  const [userId, setUserId] = useState(initial?.userId ?? currentUserId);
-  const [date, setDate] = useState(initial ? initial.start.slice(0, 10) : new Date().toISOString().slice(0, 10));
-  const [startT, setStartT] = useState(initial ? format(parseISO(initial.start), "HH:mm") : "09:00");
-  const [endT, setEndT] = useState(initial?.end ? format(parseISO(initial.end), "HH:mm") : "17:00");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
-
-  const submit = () => {
-    const start = new Date(`${date}T${startT}:00`).toISOString();
-    const end = endT ? new Date(`${date}T${endT}:00`).toISOString() : null;
-    onSave({ userId, date, start, end, notes, status: end ? "finished" : "in_progress" });
-    onClose();
-  };
-
-  return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>{initial ? "Editar jornada" : "Nueva jornada"}</DialogTitle>
-        <DialogDescription>Introduce los datos de la jornada.</DialogDescription>
-      </DialogHeader>
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label>Usuario</Label>
-          <Select value={userId} onValueChange={setUserId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="grid gap-2">
-            <Label>Fecha</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Inicio</Label>
-            <Input type="time" value={startT} onChange={(e) => setStartT(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Fin</Label>
-            <Input type="time" value={endT} onChange={(e) => setEndT(e.target.value)} />
-          </div>
-        </div>
-        <div className="grid gap-2">
-          <Label>Observaciones</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={submit}>Guardar</Button>
-      </DialogFooter>
-    </DialogContent>
   );
 }
 
