@@ -14,15 +14,24 @@ export interface User {
 }
 
 export type ShiftStatus = "in_progress" | "finished";
+export type SegmentType = "work" | "break";
+
+export interface ShiftSegment {
+  id: string;
+  type: SegmentType;
+  start: string; // HH:mm
+  end: string;   // HH:mm
+}
 
 export interface Shift {
   id: string;
   userId: string;
   date: string; // YYYY-MM-DD
-  start: string; // ISO
-  end: string | null; // ISO
+  start: string; // ISO — inicio de la primera franja (cálculos rápidos)
+  end: string | null; // ISO — fin de la última franja
   notes?: string;
   status: ShiftStatus;
+  segments?: ShiftSegment[]; // franjas dentro de la jornada
 }
 
 export type AbsenceStatus = "pending" | "approved" | "rejected";
