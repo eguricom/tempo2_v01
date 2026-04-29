@@ -88,7 +88,7 @@ function JornadasPage() {
               <DialogTrigger asChild>
                 <Button variant="outline"><Layers className="mr-2 h-4 w-4" /> Añadir en lote</Button>
               </DialogTrigger>
-              <BulkDialog
+              <BulkShiftDialog
                 onClose={() => setOpenBulk(false)}
                 onSave={(arr) => { addShiftsBulk(arr); toast.success(`${arr.length} jornadas añadidas`); }}
               />
