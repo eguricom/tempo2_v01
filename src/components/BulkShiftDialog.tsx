@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { eachDayOfInterval, format, parseISO } from "date-fns";
+import { eachDayOfInterval, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -174,7 +174,3 @@ export function BulkShiftDialog({
   );
 }
 
-// kept for type compatibility if imported elsewhere
-export type { Shift };
-function _unused(_: ReturnType<typeof parseISO>) {}
-void _unused;
