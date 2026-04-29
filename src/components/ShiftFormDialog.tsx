@@ -19,7 +19,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
-import { useAppStore, type Shift } from "@/lib/store";
+import { useAppStore, type Shift, type ShiftSegment } from "@/lib/store";
+import { SegmentEditor, makeSegment } from "@/components/SegmentEditor";
+import { toast } from "sonner";
+
+function defaultSegments(initial?: Shift): ShiftSegment[] {
+  if (initial?.segments && initial.segments.length) return initial.segments;
+  if (initial) {
+    return [
+      makeSegment(
+        "work",
+        format(parseISO(initial.start), "HH:mm"),
+        initial.end ? format(parseISO(initial.end), "HH:mm") : "17:00",
+      ),
+    ];
+  }
+  return [makeSegment("work", "09:00", "13:00"), makeSegment("break", "13:00", "14:00"), makeSegment("work", "14:00", "18:00")];
+}
 
 export function ShiftFormDialog({
   initial,
@@ -41,47 +57,46 @@ export function ShiftFormDialog({
   const [date, setDate] = useState(
     initial ? initial.start.slice(0, 10) : defaultDate ?? new Date().toISOString().slice(0, 10),
   );
-  const [startT, setStartT] = useState(initial ? format(parseISO(initial.start), "HH:mm") : "09:00");
-  const [endT, setEndT] = useState(initial?.end ? format(parseISO(initial.end), "HH:mm") : "17:00");
+  const [segments, setSegments] = useState<ShiftSegment[]>(defaultSegments(initial));
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
   const submit = () => {
-    const start = new Date(`${date}T${startT}:00`).toISOString();
-    const end = endT ? new Date(`${date}T${endT}:00`).toISOString() : null;
-    onSave({ userId, date, start, end, notes, status: end ? "finished" : "in_progress" });
+    if (segments.length === 0) {
+      toast.error("Añade al menos una franja");
+      return;
+    }
+    const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
+    const start = new Date(`${date}T${ordered[0].start}:00`).toISOString();
+    const end = new Date(`${date}T${ordered[ordered.length - 1].end}:00`).toISOString();
+    onSave({ userId, date, start, end, notes, status: "finished", segments: ordered });
     onClose();
   };
 
   return (
-    <DialogContent>
+    <DialogContent className="max-w-lg">
       <DialogHeader>
         <DialogTitle>{initial ? "Editar jornada" : "Nueva jornada"}</DialogTitle>
-        <DialogDescription>Introduce los datos de la jornada.</DialogDescription>
+        <DialogDescription>Define las franjas de trabajo y descanso de la jornada.</DialogDescription>
       </DialogHeader>
       <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label>Usuario</Label>
-          <Select value={userId} onValueChange={setUserId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-2">
+            <Label>Usuario</Label>
+            <Select value={userId} onValueChange={setUserId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid gap-2">
             <Label>Fecha</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
-          <div className="grid gap-2">
-            <Label>Inicio</Label>
-            <Input type="time" value={startT} onChange={(e) => setStartT(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Fin</Label>
-            <Input type="time" value={endT} onChange={(e) => setEndT(e.target.value)} />
-          </div>
         </div>
+
+        <SegmentEditor segments={segments} onChange={setSegments} />
+
         <div className="grid gap-2">
           <Label>Observaciones</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" />

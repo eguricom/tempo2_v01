@@ -14,15 +14,24 @@ export interface User {
 }
 
 export type ShiftStatus = "in_progress" | "finished";
+export type SegmentType = "work" | "break";
+
+export interface ShiftSegment {
+  id: string;
+  type: SegmentType;
+  start: string; // HH:mm
+  end: string;   // HH:mm
+}
 
 export interface Shift {
   id: string;
   userId: string;
   date: string; // YYYY-MM-DD
-  start: string; // ISO
-  end: string | null; // ISO
+  start: string; // ISO — inicio de la primera franja (cálculos rápidos)
+  end: string | null; // ISO — fin de la última franja
   notes?: string;
   status: ShiftStatus;
+  segments?: ShiftSegment[]; // franjas dentro de la jornada
 }
 
 export type AbsenceStatus = "pending" | "approved" | "rejected";
@@ -153,9 +162,23 @@ export const useAppStore = create<AppState>()(
   ),
 );
 
+function segMinutes(seg: ShiftSegment): number {
+  const [sh, sm] = seg.start.split(":").map(Number);
+  const [eh, em] = seg.end.split(":").map(Number);
+  return Math.max(0, eh * 60 + em - (sh * 60 + sm));
+}
+
 export function shiftMinutes(s: Shift): number {
+  if (s.segments && s.segments.length) {
+    return s.segments.filter((x) => x.type === "work").reduce((a, x) => a + segMinutes(x), 0);
+  }
   if (!s.end) return 0;
   return Math.max(0, Math.round((new Date(s.end).getTime() - new Date(s.start).getTime()) / 60000));
+}
+
+export function breakMinutes(s: Shift): number {
+  if (!s.segments) return 0;
+  return s.segments.filter((x) => x.type === "break").reduce((a, x) => a + segMinutes(x), 0);
 }
 
 export function formatDuration(mins: number) {
@@ -163,3 +186,4 @@ export function formatDuration(mins: number) {
   const m = mins % 60;
   return `${h}h ${m}m`;
 }
+
