@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { ShiftsCalendar } from "@/components/ShiftsCalendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppStore, shiftMinutes, formatDuration } from "@/lib/store";
