@@ -21,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAppStore } from "@/lib/store";
-import { Plus, Trash2 } from "lucide-react";
+import { useAppStore, type WeeklySchedule } from "@/lib/store";
+import { WeeklyScheduleEditor } from "@/components/WeeklyScheduleEditor";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/configuracion")({
@@ -38,20 +39,119 @@ export const Route = createFileRoute("/configuracion")({
 const dayNames = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
 
 function ConfigPage() {
-  const { config, updateConfig, departments, addDepartment, deleteDepartment } = useAppStore();
+  const {
+    config,
+    updateConfig,
+    departments,
+    addDepartment,
+    deleteDepartment,
+    users,
+    currentUserId,
+    updateUser,
+    autoFillShifts,
+    devMode,
+  } = useAppStore();
+  const me = users.find((u) => u.id === currentUserId);
   const [newDept, setNewDept] = useState("");
   const [newColor, setNewColor] = useState("#93c5fd");
 
+  const today = new Date().toISOString().slice(0, 10);
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState(today);
+  const [autoFrom, setAutoFrom] = useState("");
+
   const toggleDay = (i: number) => {
     const set = new Set(config.workDays);
-    set.has(i) ? set.delete(i) : set.add(i);
+    if (set.has(i)) set.delete(i);
+    else set.add(i);
     updateConfig({ workDays: Array.from(set).sort() });
+  };
+
+  const updateMySchedule = (schedule: WeeklySchedule) => {
+    if (!me) return;
+    updateUser(me.id, { schedule });
+  };
+
+  const runFill = (from: string, to: string) => {
+    if (!me) return;
+    if (!from || !to) {
+      toast.error("Selecciona las fechas");
+      return;
+    }
+    if (from > to) {
+      toast.error("La fecha inicial debe ser anterior a la final");
+      return;
+    }
+    const n = autoFillShifts(me.id, from, to);
+    if (n === 0) toast.info("No había huecos que rellenar en ese rango");
+    else toast.success(`${n} jornada${n === 1 ? "" : "s"} autocompletada${n === 1 ? "" : "s"}`);
   };
 
   return (
     <>
       <AppHeader title="Configuración" />
       <main className="flex-1 space-y-6 p-6">
+        {me && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Mi horario laboral</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Define las franjas que sueles trabajar cada día. Servirán para autorrellenar fichajes olvidados.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <WeeklyScheduleEditor value={me.schedule} onChange={updateMySchedule} />
+            </CardContent>
+          </Card>
+        )}
+
+        {me && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="h-4 w-4" /> Rellenar fichajes olvidados
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Crea automáticamente las jornadas que faltan según tu horario. Solo rellena los días sin jornada existente.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                <div className="grid gap-2">
+                  <Label>Desde</Label>
+                  <Input type="date" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Hasta</Label>
+                  <Input type="date" value={rangeTo} onChange={(e) => setRangeTo(e.target.value)} />
+                </div>
+                <Button
+                  disabled={!devMode}
+                  title={!devMode ? "Activa el modo desarrollador" : undefined}
+                  onClick={() => runFill(rangeFrom, rangeTo)}
+                >
+                  Rellenar rango
+                </Button>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                <div className="grid gap-2">
+                  <Label>Automático desde una fecha hasta hoy</Label>
+                  <Input type="date" value={autoFrom} onChange={(e) => setAutoFrom(e.target.value)} />
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={!devMode}
+                  title={!devMode ? "Activa el modo desarrollador" : undefined}
+                  onClick={() => runFill(autoFrom, today)}
+                >
+                  Rellenar hasta hoy
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Configuración de la empresa</CardTitle>

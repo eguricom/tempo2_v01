@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { LoginOverlay } from "@/components/LoginOverlay";
 
 import appCss from "../styles.css?url";
 
@@ -71,6 +72,7 @@ function RootComponent() {
         </div>
       </div>
       <Toaster />
+      <LoginOverlay />
     </SidebarProvider>
   );
 }

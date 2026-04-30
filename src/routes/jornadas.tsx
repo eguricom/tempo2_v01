@@ -44,7 +44,7 @@ export const Route = createFileRoute("/jornadas")({
 });
 
 function JornadasPage() {
-  const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift } = useAppStore();
+  const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
   const [editing, setEditing] = useState<Shift | null>(null);
@@ -68,9 +68,11 @@ function JornadasPage() {
       <main className="flex-1 space-y-4 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
-            <Dialog open={openNew} onOpenChange={setOpenNew}>
+            <Dialog open={openNew} onOpenChange={(o) => devMode && setOpenNew(o)}>
               <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> Nueva jornada</Button>
+                <Button disabled={!devMode} title={!devMode ? "Activa el modo desarrollador" : undefined}>
+                  <Plus className="mr-2 h-4 w-4" /> Nueva jornada
+                </Button>
               </DialogTrigger>
               <ShiftFormDialog
                 onClose={() => setOpenNew(false)}
@@ -78,9 +80,11 @@ function JornadasPage() {
               />
             </Dialog>
 
-            <Dialog open={openBulk} onOpenChange={setOpenBulk}>
+            <Dialog open={openBulk} onOpenChange={(o) => devMode && setOpenBulk(o)}>
               <DialogTrigger asChild>
-                <Button variant="outline"><Layers className="mr-2 h-4 w-4" /> Añadir en lote</Button>
+                <Button variant="outline" disabled={!devMode} title={!devMode ? "Activa el modo desarrollador" : undefined}>
+                  <Layers className="mr-2 h-4 w-4" /> Añadir en lote
+                </Button>
               </DialogTrigger>
               <BulkShiftDialog
                 onClose={() => setOpenBulk(false)}
@@ -167,16 +171,24 @@ function JornadasPage() {
                         <TableCell className="text-sm font-medium tabular-nums">{formatDuration(shiftMinutes(s))}</TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{s.notes || "—"}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => setEditing(s)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => { deleteShift(s.id); toast.success("Jornada eliminada"); }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {(() => {
+                            const editable = devMode || (s.status === "in_progress" && s.userId === currentUserId);
+                            return (
+                              <>
+                                <Button variant="ghost" size="icon" disabled={!editable} onClick={() => setEditing(s)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={!devMode}
+                                  onClick={() => { deleteShift(s.id); toast.success("Jornada eliminada"); }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );

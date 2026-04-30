@@ -3,14 +3,19 @@ import { persist } from "zustand/middleware";
 
 export type Role = "admin" | "employee";
 
+export type WeeklySchedule = Record<number, ShiftSegment[]>; // 0..6 (0=Dom)
+
 export interface User {
   id: string;
   name: string;
+  lastName: string;
+  nif: string;
   email: string;
   role: Role;
   department: string;
   weeklyHours: number;
   vacationDaysTotal: number;
+  schedule: WeeklySchedule;
 }
 
 export type ShiftStatus = "in_progress" | "finished";
@@ -27,11 +32,11 @@ export interface Shift {
   id: string;
   userId: string;
   date: string; // YYYY-MM-DD
-  start: string; // ISO — inicio de la primera franja (cálculos rápidos)
-  end: string | null; // ISO — fin de la última franja
+  start: string; // ISO
+  end: string | null; // ISO
   notes?: string;
   status: ShiftStatus;
-  segments?: ShiftSegment[]; // franjas dentro de la jornada
+  segments?: ShiftSegment[];
 }
 
 export type AbsenceStatus = "pending" | "approved" | "rejected";
@@ -39,7 +44,7 @@ export interface Absence {
   id: string;
   userId: string;
   reason: string;
-  startDate: string; // YYYY-MM-DD
+  startDate: string;
   endDate: string;
   status: AbsenceStatus;
   notes?: string;
@@ -57,11 +62,15 @@ export interface CompanyConfig {
   annualHours: number;
   contractType: string;
   vacationDays: number;
-  workDays: number[]; // 0-6
+  workDays: number[];
 }
 
 interface AppState {
   currentUserId: string;
+  sessionUserId: string | null;
+  devMode: boolean;
+  devPassword: string;
+
   users: User[];
   shifts: Shift[];
   absences: Absence[];
@@ -69,6 +78,10 @@ interface AppState {
   config: CompanyConfig;
 
   setCurrentUser: (id: string) => void;
+  login: (name: string, lastName: string, nif: string) => User | null;
+  logout: () => void;
+  toggleDevMode: (password: string) => boolean;
+
   addUser: (u: Omit<User, "id">) => void;
   updateUser: (id: string, u: Partial<User>) => void;
   deleteUser: (id: string) => void;
@@ -79,6 +92,9 @@ interface AppState {
   addShiftsBulk: (s: Omit<Shift, "id">[]) => void;
   updateShift: (id: string, s: Partial<Shift>) => void;
   deleteShift: (id: string) => void;
+
+  /** Rellena jornadas vacías a partir del schedule del usuario. Devuelve cuántas se crearon. */
+  autoFillShifts: (userId: string, fromISODate: string, toISODate: string) => number;
 
   addAbsence: (a: Omit<Absence, "id">) => void;
   updateAbsence: (id: string, a: Partial<Absence>) => void;
@@ -91,10 +107,21 @@ interface AppState {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+const emptySchedule = (): WeeklySchedule => ({ 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] });
+
+const standardSchedule = (): WeeklySchedule => {
+  const day = (): ShiftSegment[] => [
+    { id: uid(), type: "work", start: "09:00", end: "13:00" },
+    { id: uid(), type: "break", start: "13:00", end: "14:00" },
+    { id: uid(), type: "work", start: "14:00", end: "18:00" },
+  ];
+  return { 0: [], 1: day(), 2: day(), 3: day(), 4: day(), 5: day(), 6: [] };
+};
+
 const seedUsers: User[] = [
-  { id: "u1", name: "Ana García", email: "ana@empresa.com", role: "admin", department: "Dirección", weeklyHours: 40, vacationDaysTotal: 22 },
-  { id: "u2", name: "Carlos Ruiz", email: "carlos@empresa.com", role: "employee", department: "Ventas", weeklyHours: 40, vacationDaysTotal: 22 },
-  { id: "u3", name: "Laura Méndez", email: "laura@empresa.com", role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22 },
+  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", role: "admin", department: "Dirección", weeklyHours: 40, vacationDaysTotal: 22, schedule: standardSchedule() },
+  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", role: "employee", department: "Ventas", weeklyHours: 40, vacationDaysTotal: 22, schedule: standardSchedule() },
+  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule() },
 ];
 
 const seedDepartments: Department[] = [
@@ -105,10 +132,30 @@ const seedDepartments: Department[] = [
   { id: "d5", name: "Otro", color: "#d4d4d8" },
 ];
 
+function normalize(s: string) {
+  return s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function eachDateBetween(fromISO: string, toISO: string): string[] {
+  const out: string[] = [];
+  const d = new Date(fromISO + "T00:00:00");
+  const end = new Date(toISO + "T00:00:00");
+  if (d > end) return out;
+  while (d <= end) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       currentUserId: "u1",
+      sessionUserId: null,
+      devMode: true,
+      devPassword: "molo",
+
       users: seedUsers,
       shifts: [],
       absences: [],
@@ -122,6 +169,25 @@ export const useAppStore = create<AppState>()(
       },
 
       setCurrentUser: (id) => set({ currentUserId: id }),
+
+      login: (name, lastName, nif) => {
+        const n = normalize(name);
+        const l = normalize(lastName);
+        const id = nif.trim().toUpperCase();
+        const user = get().users.find(
+          (u) => normalize(u.name) === n && normalize(u.lastName) === l && u.nif.trim().toUpperCase() === id,
+        );
+        if (!user) return null;
+        set({ sessionUserId: user.id, currentUserId: user.id });
+        return user;
+      },
+      logout: () => set({ sessionUserId: null }),
+      toggleDevMode: (password) => {
+        if (password !== get().devPassword) return false;
+        set((s) => ({ devMode: !s.devMode }));
+        return true;
+      },
+
       addUser: (u) => set((s) => ({ users: [...s.users, { ...u, id: uid() }] })),
       updateUser: (id, u) => set((s) => ({ users: s.users.map((x) => (x.id === id ? { ...x, ...u } : x)) })),
       deleteUser: (id) => set((s) => ({ users: s.users.filter((x) => x.id !== id) })),
@@ -150,6 +216,39 @@ export const useAppStore = create<AppState>()(
       updateShift: (id, sh) => set((s) => ({ shifts: s.shifts.map((x) => (x.id === id ? { ...x, ...sh } : x)) })),
       deleteShift: (id) => set((s) => ({ shifts: s.shifts.filter((x) => x.id !== id) })),
 
+      autoFillShifts: (userId, fromISO, toISO) => {
+        const state = get();
+        const user = state.users.find((u) => u.id === userId);
+        if (!user) return 0;
+        const existingDates = new Set(
+          state.shifts.filter((s) => s.userId === userId).map((s) => s.start.slice(0, 10)),
+        );
+        const created: Shift[] = [];
+        for (const date of eachDateBetween(fromISO, toISO)) {
+          if (existingDates.has(date)) continue;
+          const dow = new Date(date + "T00:00:00").getDay();
+          const tmpl = user.schedule?.[dow] ?? [];
+          const works = tmpl.filter((s) => s.type === "work");
+          if (works.length === 0) continue;
+          const ordered = [...tmpl].sort((a, b) => a.start.localeCompare(b.start));
+          const segs = ordered.map((s) => ({ ...s, id: uid() }));
+          const startTime = ordered[0].start;
+          const endTime = ordered[ordered.length - 1].end;
+          created.push({
+            id: uid(),
+            userId,
+            date,
+            start: new Date(`${date}T${startTime}:00`).toISOString(),
+            end: new Date(`${date}T${endTime}:00`).toISOString(),
+            status: "finished",
+            segments: segs,
+            notes: "Autocompletado desde horario",
+          });
+        }
+        if (created.length) set((s) => ({ shifts: [...s.shifts, ...created] }));
+        return created.length;
+      },
+
       addAbsence: (a) => set((s) => ({ absences: [...s.absences, { ...a, id: uid() }] })),
       updateAbsence: (id, a) => set((s) => ({ absences: s.absences.map((x) => (x.id === id ? { ...x, ...a } : x)) })),
       deleteAbsence: (id) => set((s) => ({ absences: s.absences.filter((x) => x.id !== id) })),
@@ -158,7 +257,34 @@ export const useAppStore = create<AppState>()(
       deleteDepartment: (id) => set((s) => ({ departments: s.departments.filter((x) => x.id !== id) })),
       updateConfig: (c) => set((s) => ({ config: { ...s.config, ...c } })),
     }),
-    { name: "tempo-store-v1" },
+    {
+      name: "tempo-store-v2",
+      version: 2,
+      migrate: (persisted: unknown) => {
+        const p = (persisted ?? {}) as Partial<AppState> & Record<string, unknown>;
+        const users = Array.isArray(p.users) ? (p.users as Partial<User>[]) : seedUsers;
+        const fixedUsers: User[] = users.map((u) => ({
+          id: u.id ?? uid(),
+          name: u.name ?? "",
+          lastName: (u as { lastName?: string }).lastName ?? "",
+          nif: (u as { nif?: string }).nif ?? "",
+          email: u.email ?? "",
+          role: (u.role as Role) ?? "employee",
+          department: u.department ?? "Otro",
+          weeklyHours: u.weeklyHours ?? 40,
+          vacationDaysTotal: u.vacationDaysTotal ?? 22,
+          schedule:
+            (u as { schedule?: WeeklySchedule }).schedule ?? emptySchedule(),
+        }));
+        return {
+          ...p,
+          users: fixedUsers,
+          sessionUserId: (p as { sessionUserId?: string | null }).sessionUserId ?? null,
+          devMode: (p as { devMode?: boolean }).devMode ?? true,
+          devPassword: (p as { devPassword?: string }).devPassword ?? "molo",
+        };
+      },
+    },
   ),
 );
 
@@ -186,4 +312,3 @@ export function formatDuration(mins: number) {
   const m = mins % 60;
   return `${h}h ${m}m`;
 }
-
