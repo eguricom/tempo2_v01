@@ -22,12 +22,31 @@ import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { toast } from "sonner";
 
 export function ShiftsCalendar({ userId }: { userId?: string }) {
-  const { shifts, users, addShift, updateShift, deleteShift } = useAppStore();
+  const { shifts, users, addShift, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
   const [cursor, setCursor] = useState(new Date());
   const [editing, setEditing] = useState<Shift | null>(null);
   const [creatingDate, setCreatingDate] = useState<string | null>(null);
 
   const visible = userId ? shifts.filter((s) => s.userId === userId) : shifts;
+
+  const canEdit = (s: Shift) =>
+    devMode || (s.status === "in_progress" && s.userId === currentUserId);
+
+  const tryCreate = (date: string) => {
+    if (!devMode) {
+      toast.error("Activa el modo desarrollador para añadir fichajes manualmente");
+      return;
+    }
+    setCreatingDate(date);
+  };
+
+  const tryEdit = (s: Shift) => {
+    if (!canEdit(s)) {
+      toast.error("Solo puedes editar la jornada en curso");
+      return;
+    }
+    setEditing(s);
+  };
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
