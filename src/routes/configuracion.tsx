@@ -273,6 +273,8 @@ function ConfigPage() {
             <Card><CardContent className="p-12 text-center text-sm text-muted-foreground">Próximamente</CardContent></Card>
           </TabsContent>
         </Tabs>
+
+        <DevModeFooter />
       </main>
     </>
   );
