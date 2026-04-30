@@ -23,7 +23,6 @@ export function AppHeader({ title }: { title: string }) {
         <h1 className="text-base font-semibold tracking-tight">{title}</h1>
       </div>
       <div className="flex items-center gap-3">
-        <DevModeToggle />
         <Badge variant={active ? "default" : "secondary"} className={active ? "bg-success text-success-foreground" : ""}>
           {active ? "Trabajando" : "Descansando"}
         </Badge>
