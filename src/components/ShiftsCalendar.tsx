@@ -85,7 +85,9 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
         </div>
         <Button
           size="sm"
-          onClick={() => setCreatingDate(format(new Date(), "yyyy-MM-dd"))}
+          disabled={!devMode}
+          title={!devMode ? "Activa el modo desarrollador" : undefined}
+          onClick={() => tryCreate(format(new Date(), "yyyy-MM-dd"))}
         >
           <Plus className="mr-2 h-4 w-4" /> Añadir fichaje
         </Button>
@@ -115,7 +117,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
               <div className="mb-1 flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setCreatingDate(key)}
+                  onClick={() => tryCreate(key)}
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
                     isToday
                       ? "bg-primary text-primary-foreground"
@@ -131,14 +133,16 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                     {formatDuration(total)}
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setCreatingDate(key)}
-                  className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary opacity-0 transition-opacity hover:bg-primary hover:text-primary-foreground group-hover:flex group-hover:opacity-100"
-                  aria-label="Añadir fichaje"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
+                {devMode && (
+                  <button
+                    type="button"
+                    onClick={() => tryCreate(key)}
+                    className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary opacity-0 transition-opacity hover:bg-primary hover:text-primary-foreground group-hover:flex group-hover:opacity-100"
+                    aria-label="Añadir fichaje"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -149,7 +153,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => setEditing(s)}
+                      onClick={() => tryEdit(s)}
                       className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition-colors ${
                         inProgress
                           ? "bg-warning/20 text-warning-foreground hover:bg-warning/30"
