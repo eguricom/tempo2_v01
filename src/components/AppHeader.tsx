@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DevModeToggle } from "@/components/DevModeToggle";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
