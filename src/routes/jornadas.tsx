@@ -29,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
-import { Plus, Trash2, Pencil, Layers, Search } from "lucide-react";
+import { Plus, Trash2, Pencil, Layers, Search, Printer } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
@@ -91,6 +91,10 @@ function JornadasPage() {
                 onSave={(arr) => { addShiftsBulk(arr); toast.success(`${arr.length} jornadas añadidas`); }}
               />
             </Dialog>
+
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" /> Imprimir
+            </Button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
