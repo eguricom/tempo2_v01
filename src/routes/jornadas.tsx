@@ -66,7 +66,7 @@ function JornadasPage() {
     <>
       <AppHeader title="Jornadas" />
       <main className="flex-1 space-y-4 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 no-print">
           <div className="flex flex-wrap gap-2">
             <Dialog open={openNew} onOpenChange={(o) => devMode && setOpenNew(o)}>
               <DialogTrigger asChild>
