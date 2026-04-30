@@ -146,3 +146,14 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+@media print {
+  @page { margin: 12mm; }
+  body { background: white !important; }
+  [data-sidebar], aside, header.sticky, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+  [role="tablist"] { display: none !important; }
+  [role="tabpanel"][hidden], [role="tabpanel"][data-state="inactive"] { display: none !important; }
+  .print-block { display: block !important; }
+  * { box-shadow: none !important; }
+}
