@@ -279,3 +279,55 @@ function ConfigPage() {
     </>
   );
 }
+
+function DevModeFooter() {
+  const devMode = useAppStore((s) => s.devMode);
+  const toggleDevMode = useAppStore((s) => s.toggleDevMode);
+  const [open, setOpen] = useState(false);
+  const [pwd, setPwd] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = toggleDevMode(pwd);
+    if (!ok) {
+      toast.error("Contraseña incorrecta");
+      return;
+    }
+    setPwd("");
+    setOpen(false);
+    toast.success(devMode ? "Modo desarrollador desactivado" : "Modo desarrollador activado");
+  };
+
+  return (
+    <div className="pt-12 text-center">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-[11px] text-muted-foreground/60 underline-offset-4 hover:text-muted-foreground hover:underline"
+      >
+        modo desarrollador: {devMode ? "activado" : "desactivado"}
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{devMode ? "Desactivar" : "Activar"} modo desarrollador</DialogTitle>
+            <DialogDescription>
+              Introduce la contraseña para {devMode ? "desactivar" : "activar"} la edición manual de fichajes.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submit} className="space-y-3">
+            <div className="grid gap-2">
+              <Label>Contraseña</Label>
+              <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoFocus />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button type="submit">Confirmar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
