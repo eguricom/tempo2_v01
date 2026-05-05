@@ -17,12 +17,12 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
+import { useAppStore, shiftMinutes, formatDuration, isHoliday, isVacation, isFreeDay, type Shift } from "@/lib/store";
 import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { toast } from "sonner";
 
 export function ShiftsCalendar({ userId }: { userId?: string }) {
-  const { shifts, users, addShift, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
+  const { shifts, users, addShift, updateShift, deleteShift, devMode, currentUserId, holidays, vacations, freeDays } = useAppStore();
   const [cursor, setCursor] = useState(new Date());
   const [editing, setEditing] = useState<Shift | null>(null);
   const [creatingDate, setCreatingDate] = useState<string | null>(null);
