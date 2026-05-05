@@ -149,6 +149,21 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
               </div>
 
               <div className="space-y-1">
+                {holiday && (
+                  <span className="block truncate rounded bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive" title={holiday.name}>
+                    🎉 {holiday.name}
+                  </span>
+                )}
+                {vacation && (
+                  <span className="block truncate rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success-foreground">
+                    ✈️ Vacaciones
+                  </span>
+                )}
+                {free && (
+                  <span className="block truncate rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning-foreground">
+                    Día libre
+                  </span>
+                )}
                 {items.slice(0, 3).map((s) => {
                   const u = users.find((x) => x.id === s.userId);
                   const inProgress = s.status === "in_progress";
