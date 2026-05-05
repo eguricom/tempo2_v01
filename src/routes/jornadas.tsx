@@ -98,6 +98,54 @@ function JornadasPage() {
 
   const exportData = () => filtered.filter((s) => selected.size === 0 || selected.has(s.id));
 
+  const grouped = useMemo(() => {
+    if (groupBy === "none") return null;
+    const map = groupShiftsByPeriod(filtered, groupBy);
+    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filtered, groupBy]);
+
+  const formatGroupLabel = (key: string) => {
+    if (groupBy === "year") return key;
+    if (groupBy === "month") {
+      const [y, m] = key.split("-");
+      return format(new Date(+y, +m - 1, 1), "MMMM yyyy", { locale: es });
+    }
+    // week: yyyy-Www -> show first shift's week range
+    return `Semana ${key}`;
+  };
+
+  const runMagicBalance = () => {
+    if (userFilter === "all") {
+      toast.error("Selecciona un usuario para cuadrar las horas");
+      return;
+    }
+    const user = users.find((u) => u.id === userFilter);
+    if (!user) return;
+    const now = new Date();
+    const ws = startOfWeek(now, { weekStartsOn: 1 });
+    const we = endOfWeek(now, { weekStartsOn: 1 });
+    const weekShifts = shifts.filter((s) => {
+      if (s.userId !== userFilter) return false;
+      const d = parseISO(s.start);
+      return d >= ws && d <= we;
+    });
+    if (weekShifts.length === 0) {
+      toast.error("No hay jornadas esta semana para cuadrar");
+      return;
+    }
+    const result = magicBalanceWeek(user, weekShifts);
+    if (result.changed.length === 0) {
+      toast.info(`Ya cuadrado: ${(result.totalBefore / 60).toFixed(2)}h`);
+      return;
+    }
+    result.changed.forEach((c) => {
+      updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" });
+    });
+    toast.success(
+      `Semana cuadrada: ${(result.totalBefore / 60).toFixed(2)}h → ${(result.totalAfter / 60).toFixed(2)}h`,
+    );
+  };
+
   return (
     <>
       <AppHeader title="Jornadas" />
