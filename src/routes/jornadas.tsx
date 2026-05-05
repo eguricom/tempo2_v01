@@ -198,11 +198,23 @@ function JornadasPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={runMagicBalance} title="Cuadra la semana actual a 37,5h del usuario seleccionado">
+              <Sparkles className="mr-2 h-4 w-4" /> Cuadre mágico (37,5h)
+            </Button>
+            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin agrupar</SelectItem>
+                <SelectItem value="week">Agrupar por semana</SelectItem>
+                <SelectItem value="month">Agrupar por mes</SelectItem>
+                <SelectItem value="year">Agrupar por año</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar empleado..."
-                className="pl-8 w-[220px]"
+                className="pl-8 w-[200px]"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
