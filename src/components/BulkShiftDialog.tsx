@@ -40,10 +40,12 @@ export function BulkShiftDialog({
   onClose: () => void;
   onSave: (s: Omit<Shift, "id">[]) => void;
 }) {
-  const { users, currentUserId } = useAppStore();
+  const { users, currentUserId, holidays, vacations, freeDays } = useAppStore();
   const [userId, setUserId] = useState(currentUserId);
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
   const [allowedDays, setAllowedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [randomize, setRandomize] = useState(false);
+  const [jitterSec, setJitterSec] = useState(120);
   const [segments, setSegments] = useState<ShiftSegment[]>([
     makeSegment("work", "09:00", "13:00"),
     makeSegment("break", "13:00", "14:00"),
