@@ -63,6 +63,13 @@ export function BulkShiftDialog({
     );
   }, [range, allowedDays]);
 
+  const skippedCount = useMemo(() => {
+    return previewDays.filter((d) => {
+      const date = format(d, "yyyy-MM-dd");
+      return isHoliday(date, holidays) || isVacation(date, userId, vacations) || isFreeDay(date, userId, freeDays);
+    }).length;
+  }, [previewDays, holidays, vacations, freeDays, userId]);
+
   const submit = () => {
     if (!range.from || !range.to) {
       toast.error("Selecciona un rango de fechas en el calendario");
@@ -77,20 +84,42 @@ export function BulkShiftDialog({
       return;
     }
     const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
-    const arr: Omit<Shift, "id">[] = previewDays.map((d) => {
+
+    const toMin = (t: string) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+    const toHHMM = (mins: number) => {
+      const m = ((mins % 1440) + 1440) % 1440;
+      return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    };
+
+    const arr: Omit<Shift, "id">[] = [];
+    let skipped = 0;
+    for (const d of previewDays) {
       const date = format(d, "yyyy-MM-dd");
-      const start = new Date(`${date}T${ordered[0].start}:00`).toISOString();
-      const end = new Date(`${date}T${ordered[ordered.length - 1].end}:00`).toISOString();
-      return {
-        userId,
-        date,
-        start,
-        end,
-        status: "finished" as const,
-        segments: ordered.map((s) => ({ ...s, id: Math.random().toString(36).slice(2, 10) })),
-      };
-    });
+      if (isHoliday(date, holidays) || isVacation(date, userId, vacations) || isFreeDay(date, userId, freeDays)) {
+        skipped++;
+        continue;
+      }
+      // build segments with optional jitter (in minutes, derived from seconds)
+      const daySegs = ordered.map((s) => {
+        if (!randomize) return { ...s, id: Math.random().toString(36).slice(2, 10) };
+        const offMinStart = Math.round(((Math.random() * 2 - 1) * jitterSec) / 60);
+        const offMinEnd = Math.round(((Math.random() * 2 - 1) * jitterSec) / 60);
+        return {
+          ...s,
+          id: Math.random().toString(36).slice(2, 10),
+          start: toHHMM(toMin(s.start) + offMinStart),
+          end: toHHMM(toMin(s.end) + offMinEnd),
+        };
+      });
+      const start = new Date(`${date}T${daySegs[0].start}:00`).toISOString();
+      const end = new Date(`${date}T${daySegs[daySegs.length - 1].end}:00`).toISOString();
+      arr.push({ userId, date, start, end, status: "finished", segments: daySegs });
+    }
     onSave(arr);
+    if (skipped > 0) toast.info(`${skipped} día${skipped === 1 ? "" : "s"} omitido${skipped === 1 ? "" : "s"} (festivos / vacaciones / día libre)`);
     onClose();
   };
 
