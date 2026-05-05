@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { useAppStore, type Shift, type ShiftSegment } from "@/lib/store";
+import { useAppStore, isHoliday, isVacation, isFreeDay, type Shift, type ShiftSegment } from "@/lib/store";
 import { SegmentEditor, makeSegment } from "@/components/SegmentEditor";
 import { toast } from "sonner";
 
