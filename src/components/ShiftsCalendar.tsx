@@ -106,12 +106,15 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
           const total = items.reduce((acc, s) => acc + shiftMinutes(s), 0);
           const inMonth = isSameMonth(d, cursor);
           const isToday = isSameDay(d, new Date());
+          const holiday = isHoliday(key, holidays);
+          const vacation = userId ? isVacation(key, userId, vacations) : undefined;
+          const free = userId ? isFreeDay(key, userId, freeDays) : undefined;
 
           return (
             <div
               key={key}
               className={`group relative min-h-[110px] border-b border-r p-1.5 text-left transition-colors hover:bg-accent/40 ${
-                inMonth ? "bg-background" : "bg-muted/20"
+                holiday ? "bg-destructive/5" : vacation ? "bg-success/5" : free ? "bg-warning/5" : inMonth ? "bg-background" : "bg-muted/20"
               }`}
             >
               <div className="mb-1 flex items-center justify-between">
