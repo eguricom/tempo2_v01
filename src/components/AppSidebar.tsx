@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Clock, Plane, Users, Settings, Timer } from "lucide-react";
+import { Home, Clock, Plane, Users, Settings, Timer, CalendarDays } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +15,7 @@ import {
 const items = [
   { title: "Inicio", url: "/", icon: Home },
   { title: "Jornadas", url: "/jornadas", icon: Clock },
+  { title: "Vacaciones y festivos", url: "/vacaciones", icon: CalendarDays },
   { title: "Ausencias", url: "/ausencias", icon: Plane },
   { title: "Usuarios", url: "/usuarios", icon: Users },
   { title: "Configuración", url: "/configuracion", icon: Settings },

@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as JornadasRouteImport } from './routes/jornadas'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as AusenciasRouteImport } from './routes/ausencias'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VacacionesRoute = VacacionesRouteImport.update({
+  id: '/vacaciones',
+  path: '/vacaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/configuracion': typeof ConfiguracionRoute
   '/jornadas': typeof JornadasRoute
   '/usuarios': typeof UsuariosRoute
+  '/vacaciones': typeof VacacionesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/configuracion': typeof ConfiguracionRoute
   '/jornadas': typeof JornadasRoute
   '/usuarios': typeof UsuariosRoute
+  '/vacaciones': typeof VacacionesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,25 @@ export interface FileRoutesById {
   '/configuracion': typeof ConfiguracionRoute
   '/jornadas': typeof JornadasRoute
   '/usuarios': typeof UsuariosRoute
+  '/vacaciones': typeof VacacionesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ausencias' | '/configuracion' | '/jornadas' | '/usuarios'
+  fullPaths:
+    | '/'
+    | '/ausencias'
+    | '/configuracion'
+    | '/jornadas'
+    | '/usuarios'
+    | '/vacaciones'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ausencias' | '/configuracion' | '/jornadas' | '/usuarios'
+  to:
+    | '/'
+    | '/ausencias'
+    | '/configuracion'
+    | '/jornadas'
+    | '/usuarios'
+    | '/vacaciones'
   id:
     | '__root__'
     | '/'
@@ -75,6 +96,7 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/jornadas'
     | '/usuarios'
+    | '/vacaciones'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,10 +105,18 @@ export interface RootRouteChildren {
   ConfiguracionRoute: typeof ConfiguracionRoute
   JornadasRoute: typeof JornadasRoute
   UsuariosRoute: typeof UsuariosRoute
+  VacacionesRoute: typeof VacacionesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vacaciones': {
+      id: '/vacaciones'
+      path: '/vacaciones'
+      fullPath: '/vacaciones'
+      preLoaderRoute: typeof VacacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/usuarios': {
       id: '/usuarios'
       path: '/usuarios'
@@ -131,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracionRoute: ConfiguracionRoute,
   JornadasRoute: JornadasRoute,
   UsuariosRoute: UsuariosRoute,
+  VacacionesRoute: VacacionesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
