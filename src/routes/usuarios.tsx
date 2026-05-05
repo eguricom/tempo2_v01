@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { useAppStore, type User, type WeeklySchedule } from "@/lib/store";
+import { useAppStore, type User, type WeeklySchedule, type Address } from "@/lib/store";
 import { WeeklyScheduleEditor } from "@/components/WeeklyScheduleEditor";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -154,11 +154,15 @@ function UserForm({
   const [email, setEmail] = useState(initial?.email ?? "");
   const [role, setRole] = useState<User["role"]>(initial?.role ?? "employee");
   const [department, setDepartment] = useState(initial?.department ?? departments[0]?.name ?? "Otro");
-  const [weeklyHours, setWeeklyHours] = useState(initial?.weeklyHours ?? 40);
+  const [weeklyHours, setWeeklyHours] = useState(initial?.weeklyHours ?? 37.5);
   const [vacationDaysTotal, setVacationDaysTotal] = useState(initial?.vacationDaysTotal ?? 22);
+  const [companyEmail, setCompanyEmail] = useState(initial?.companyEmail ?? "");
+  const [phone, setPhone] = useState(initial?.phone ?? "");
+  const [address, setAddress] = useState<Address>(initial?.address ?? { street: "", floor: "", postalCode: "", city: "" });
   const [schedule, setSchedule] = useState<WeeklySchedule>(
     initial?.schedule ?? { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
   );
+  const setAddr = (k: keyof Address, v: string) => setAddress((a) => ({ ...a, [k]: v }));
 
   return (
     <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -172,7 +176,20 @@ function UserForm({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-2"><Label>NIF</Label><Input value={nif} onChange={(e) => setNif(e.target.value.toUpperCase())} placeholder="00000000A" /></div>
-          <div className="grid gap-2"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="grid gap-2"><Label>Teléfono</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+34 600 000 000" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-2"><Label>Email personal</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="grid gap-2"><Label>Email empresa</Label><Input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} /></div>
+        </div>
+        <div className="rounded-md border p-3">
+          <Label className="mb-2 block text-sm">Dirección</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2 col-span-2"><Label className="text-xs">Calle</Label><Input value={address.street} onChange={(e) => setAddr("street", e.target.value)} /></div>
+            <div className="grid gap-2"><Label className="text-xs">Piso / Puerta</Label><Input value={address.floor} onChange={(e) => setAddr("floor", e.target.value)} /></div>
+            <div className="grid gap-2"><Label className="text-xs">Código postal</Label><Input value={address.postalCode} onChange={(e) => setAddr("postalCode", e.target.value)} /></div>
+            <div className="grid gap-2 col-span-2"><Label className="text-xs">Ciudad</Label><Input value={address.city} onChange={(e) => setAddr("city", e.target.value)} /></div>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-2">
@@ -210,7 +227,7 @@ function UserForm({
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => { onSave({ name, lastName, nif, email, role, department, weeklyHours, vacationDaysTotal, schedule }); onClose(); }}>
+        <Button onClick={() => { onSave({ name, lastName, nif, email, companyEmail, phone, address, role, department, weeklyHours, vacationDaysTotal, schedule }); onClose(); }}>
           Guardar
         </Button>
       </DialogFooter>
