@@ -37,10 +37,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
-import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
+import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
+import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportShiftsExcel, exportShiftsPDF } from "@/lib/export";
+import { groupShiftsByPeriod, magicBalanceWeek } from "@/lib/balance";
 
 export const Route = createFileRoute("/jornadas")({
   head: () => ({
@@ -56,6 +58,7 @@ function JornadasPage() {
   const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
+  const [groupBy, setGroupBy] = useState<"none" | "week" | "month" | "year">("none");
   const [editing, setEditing] = useState<Shift | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [openBulk, setOpenBulk] = useState(false);
