@@ -5,12 +5,22 @@ export type Role = "admin" | "employee";
 
 export type WeeklySchedule = Record<number, ShiftSegment[]>; // 0..6 (0=Dom)
 
+export interface Address {
+  street: string;
+  floor: string;
+  postalCode: string;
+  city: string;
+}
+
 export interface User {
   id: string;
   name: string;
   lastName: string;
   nif: string;
   email: string;
+  companyEmail: string;
+  phone: string;
+  address: Address;
   role: Role;
   department: string;
   weeklyHours: number;
@@ -57,6 +67,27 @@ export interface Department {
   color: string;
 }
 
+export interface Holiday {
+  id: string;
+  date: string; // YYYY-MM-DD
+  name: string;
+}
+
+export interface VacationRange {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  notes?: string;
+}
+
+export interface FreeDay {
+  id: string;
+  userId: string;
+  date: string;
+  notes?: string;
+}
+
 export interface CompanyConfig {
   weeklyHours: number;
   annualHours: number;
@@ -75,6 +106,9 @@ interface AppState {
   shifts: Shift[];
   absences: Absence[];
   departments: Department[];
+  holidays: Holiday[];
+  vacations: VacationRange[];
+  freeDays: FreeDay[];
   config: CompanyConfig;
 
   setCurrentUser: (id: string) => void;
@@ -93,12 +127,18 @@ interface AppState {
   updateShift: (id: string, s: Partial<Shift>) => void;
   deleteShift: (id: string) => void;
 
-  /** Rellena jornadas vacías a partir del schedule del usuario. Devuelve cuántas se crearon. */
   autoFillShifts: (userId: string, fromISODate: string, toISODate: string) => number;
 
   addAbsence: (a: Omit<Absence, "id">) => void;
   updateAbsence: (id: string, a: Partial<Absence>) => void;
   deleteAbsence: (id: string) => void;
+
+  addHoliday: (h: Omit<Holiday, "id">) => void;
+  deleteHoliday: (id: string) => void;
+  addVacation: (v: Omit<VacationRange, "id">) => void;
+  deleteVacation: (id: string) => void;
+  addFreeDay: (f: Omit<FreeDay, "id">) => void;
+  deleteFreeDay: (id: string) => void;
 
   addDepartment: (d: Omit<Department, "id">) => void;
   deleteDepartment: (id: string) => void;
@@ -113,15 +153,17 @@ const standardSchedule = (): WeeklySchedule => {
   const day = (): ShiftSegment[] => [
     { id: uid(), type: "work", start: "09:00", end: "13:00" },
     { id: uid(), type: "break", start: "13:00", end: "14:00" },
-    { id: uid(), type: "work", start: "14:00", end: "18:00" },
+    { id: uid(), type: "work", start: "14:00", end: "17:30" },
   ];
   return { 0: [], 1: day(), 2: day(), 3: day(), 4: day(), 5: day(), 6: [] };
 };
 
+const emptyAddress = (): Address => ({ street: "", floor: "", postalCode: "", city: "" });
+
 const seedUsers: User[] = [
-  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", role: "admin", department: "Dirección", weeklyHours: 40, vacationDaysTotal: 22, schedule: standardSchedule() },
-  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", role: "employee", department: "Ventas", weeklyHours: 40, vacationDaysTotal: 22, schedule: standardSchedule() },
-  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule() },
+  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", companyEmail: "ana@empresa.com", phone: "", address: emptyAddress(), role: "admin", department: "Dirección", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule() },
+  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", companyEmail: "carlos@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Ventas", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule() },
+  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", companyEmail: "laura@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule() },
 ];
 
 const seedDepartments: Department[] = [
@@ -148,6 +190,18 @@ function eachDateBetween(fromISO: string, toISO: string): string[] {
   return out;
 }
 
+export function isHoliday(date: string, holidays: Holiday[]): Holiday | undefined {
+  return holidays.find((h) => h.date === date);
+}
+
+export function isVacation(date: string, userId: string, vacations: VacationRange[]): VacationRange | undefined {
+  return vacations.find((v) => v.userId === userId && date >= v.startDate && date <= v.endDate);
+}
+
+export function isFreeDay(date: string, userId: string, freeDays: FreeDay[]): FreeDay | undefined {
+  return freeDays.find((f) => f.userId === userId && f.date === date);
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -160,8 +214,11 @@ export const useAppStore = create<AppState>()(
       shifts: [],
       absences: [],
       departments: seedDepartments,
+      holidays: [],
+      vacations: [],
+      freeDays: [],
       config: {
-        weeklyHours: 40,
+        weeklyHours: 37.5,
         annualHours: 1723,
         contractType: "Jornada completa",
         vacationDays: 22,
@@ -226,6 +283,9 @@ export const useAppStore = create<AppState>()(
         const created: Shift[] = [];
         for (const date of eachDateBetween(fromISO, toISO)) {
           if (existingDates.has(date)) continue;
+          if (isHoliday(date, state.holidays)) continue;
+          if (isVacation(date, userId, state.vacations)) continue;
+          if (isFreeDay(date, userId, state.freeDays)) continue;
           const dow = new Date(date + "T00:00:00").getDay();
           const tmpl = user.schedule?.[dow] ?? [];
           const works = tmpl.filter((s) => s.type === "work");
@@ -253,13 +313,20 @@ export const useAppStore = create<AppState>()(
       updateAbsence: (id, a) => set((s) => ({ absences: s.absences.map((x) => (x.id === id ? { ...x, ...a } : x)) })),
       deleteAbsence: (id) => set((s) => ({ absences: s.absences.filter((x) => x.id !== id) })),
 
+      addHoliday: (h) => set((s) => ({ holidays: [...s.holidays.filter((x) => x.date !== h.date), { ...h, id: uid() }] })),
+      deleteHoliday: (id) => set((s) => ({ holidays: s.holidays.filter((x) => x.id !== id) })),
+      addVacation: (v) => set((s) => ({ vacations: [...s.vacations, { ...v, id: uid() }] })),
+      deleteVacation: (id) => set((s) => ({ vacations: s.vacations.filter((x) => x.id !== id) })),
+      addFreeDay: (f) => set((s) => ({ freeDays: [...s.freeDays.filter((x) => !(x.date === f.date && x.userId === f.userId)), { ...f, id: uid() }] })),
+      deleteFreeDay: (id) => set((s) => ({ freeDays: s.freeDays.filter((x) => x.id !== id) })),
+
       addDepartment: (d) => set((s) => ({ departments: [...s.departments, { ...d, id: uid() }] })),
       deleteDepartment: (id) => set((s) => ({ departments: s.departments.filter((x) => x.id !== id) })),
       updateConfig: (c) => set((s) => ({ config: { ...s.config, ...c } })),
     }),
     {
-      name: "tempo-store-v2",
-      version: 2,
+      name: "tempo-store-v3",
+      version: 3,
       migrate: (persisted: unknown) => {
         const p = (persisted ?? {}) as Partial<AppState> & Record<string, unknown>;
         const users = Array.isArray(p.users) ? (p.users as Partial<User>[]) : seedUsers;
@@ -269,16 +336,21 @@ export const useAppStore = create<AppState>()(
           lastName: (u as { lastName?: string }).lastName ?? "",
           nif: (u as { nif?: string }).nif ?? "",
           email: u.email ?? "",
+          companyEmail: (u as { companyEmail?: string }).companyEmail ?? u.email ?? "",
+          phone: (u as { phone?: string }).phone ?? "",
+          address: (u as { address?: Address }).address ?? emptyAddress(),
           role: (u.role as Role) ?? "employee",
           department: u.department ?? "Otro",
-          weeklyHours: u.weeklyHours ?? 40,
+          weeklyHours: u.weeklyHours ?? 37.5,
           vacationDaysTotal: u.vacationDaysTotal ?? 22,
-          schedule:
-            (u as { schedule?: WeeklySchedule }).schedule ?? emptySchedule(),
+          schedule: (u as { schedule?: WeeklySchedule }).schedule ?? emptySchedule(),
         }));
         return {
           ...p,
           users: fixedUsers,
+          holidays: (p as { holidays?: Holiday[] }).holidays ?? [],
+          vacations: (p as { vacations?: VacationRange[] }).vacations ?? [],
+          freeDays: (p as { freeDays?: FreeDay[] }).freeDays ?? [],
           sessionUserId: (p as { sessionUserId?: string | null }).sessionUserId ?? null,
           devMode: (p as { devMode?: boolean }).devMode ?? true,
           devPassword: (p as { devPassword?: string }).devPassword ?? "molo",
