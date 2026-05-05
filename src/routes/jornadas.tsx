@@ -256,6 +256,25 @@ function JornadasPage() {
                 </div>
               </div>
             )}
+            {grouped && (
+              <Card className="p-3">
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Resumen agrupado</p>
+                <div className="space-y-1.5">
+                  {grouped.map(([key, list]) => {
+                    const total = list.reduce((a, s) => a + shiftMinutes(s), 0);
+                    return (
+                      <div key={key} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-1.5 text-sm">
+                        <span className="capitalize">{formatGroupLabel(key)}</span>
+                        <span className="tabular-nums">
+                          <span className="text-muted-foreground">{list.length} jornadas · </span>
+                          <span className="font-medium">{formatDuration(total)}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
             <Card>
               <Table>
                 <TableHeader>
