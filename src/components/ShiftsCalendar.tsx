@@ -17,12 +17,12 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
+import { useAppStore, shiftMinutes, formatDuration, isHoliday, isVacation, isFreeDay, type Shift } from "@/lib/store";
 import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { toast } from "sonner";
 
 export function ShiftsCalendar({ userId }: { userId?: string }) {
-  const { shifts, users, addShift, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
+  const { shifts, users, addShift, updateShift, deleteShift, devMode, currentUserId, holidays, vacations, freeDays } = useAppStore();
   const [cursor, setCursor] = useState(new Date());
   const [editing, setEditing] = useState<Shift | null>(null);
   const [creatingDate, setCreatingDate] = useState<string | null>(null);
@@ -106,12 +106,15 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
           const total = items.reduce((acc, s) => acc + shiftMinutes(s), 0);
           const inMonth = isSameMonth(d, cursor);
           const isToday = isSameDay(d, new Date());
+          const holiday = isHoliday(key, holidays);
+          const vacation = userId ? isVacation(key, userId, vacations) : undefined;
+          const free = userId ? isFreeDay(key, userId, freeDays) : undefined;
 
           return (
             <div
               key={key}
               className={`group relative min-h-[110px] border-b border-r p-1.5 text-left transition-colors hover:bg-accent/40 ${
-                inMonth ? "bg-background" : "bg-muted/20"
+                holiday ? "bg-destructive/5" : vacation ? "bg-success/5" : free ? "bg-warning/5" : inMonth ? "bg-background" : "bg-muted/20"
               }`}
             >
               <div className="mb-1 flex items-center justify-between">
@@ -146,6 +149,21 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
               </div>
 
               <div className="space-y-1">
+                {holiday && (
+                  <span className="block truncate rounded bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive" title={holiday.name}>
+                    🎉 {holiday.name}
+                  </span>
+                )}
+                {vacation && (
+                  <span className="block truncate rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success-foreground">
+                    ✈️ Vacaciones
+                  </span>
+                )}
+                {free && (
+                  <span className="block truncate rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning-foreground">
+                    Día libre
+                  </span>
+                )}
                 {items.slice(0, 3).map((s) => {
                   const u = users.find((x) => x.id === s.userId);
                   const inProgress = s.status === "in_progress";

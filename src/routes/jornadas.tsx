@@ -37,10 +37,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
-import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
+import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
+import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportShiftsExcel, exportShiftsPDF } from "@/lib/export";
+import { groupShiftsByPeriod, magicBalanceWeek } from "@/lib/balance";
 
 export const Route = createFileRoute("/jornadas")({
   head: () => ({
@@ -56,6 +58,7 @@ function JornadasPage() {
   const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
+  const [groupBy, setGroupBy] = useState<"none" | "week" | "month" | "year">("none");
   const [editing, setEditing] = useState<Shift | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [openBulk, setOpenBulk] = useState(false);
@@ -94,6 +97,54 @@ function JornadasPage() {
   };
 
   const exportData = () => filtered.filter((s) => selected.size === 0 || selected.has(s.id));
+
+  const grouped = useMemo(() => {
+    if (groupBy === "none") return null;
+    const map = groupShiftsByPeriod(filtered, groupBy);
+    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filtered, groupBy]);
+
+  const formatGroupLabel = (key: string) => {
+    if (groupBy === "year") return key;
+    if (groupBy === "month") {
+      const [y, m] = key.split("-");
+      return format(new Date(+y, +m - 1, 1), "MMMM yyyy", { locale: es });
+    }
+    // week: yyyy-Www -> show first shift's week range
+    return `Semana ${key}`;
+  };
+
+  const runMagicBalance = () => {
+    if (userFilter === "all") {
+      toast.error("Selecciona un usuario para cuadrar las horas");
+      return;
+    }
+    const user = users.find((u) => u.id === userFilter);
+    if (!user) return;
+    const now = new Date();
+    const ws = startOfWeek(now, { weekStartsOn: 1 });
+    const we = endOfWeek(now, { weekStartsOn: 1 });
+    const weekShifts = shifts.filter((s) => {
+      if (s.userId !== userFilter) return false;
+      const d = parseISO(s.start);
+      return d >= ws && d <= we;
+    });
+    if (weekShifts.length === 0) {
+      toast.error("No hay jornadas esta semana para cuadrar");
+      return;
+    }
+    const result = magicBalanceWeek(user, weekShifts);
+    if (result.changed.length === 0) {
+      toast.info(`Ya cuadrado: ${(result.totalBefore / 60).toFixed(2)}h`);
+      return;
+    }
+    result.changed.forEach((c) => {
+      updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" });
+    });
+    toast.success(
+      `Semana cuadrada: ${(result.totalBefore / 60).toFixed(2)}h → ${(result.totalAfter / 60).toFixed(2)}h`,
+    );
+  };
 
   return (
     <>
@@ -147,11 +198,23 @@ function JornadasPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={runMagicBalance} title="Cuadra la semana actual a 37,5h del usuario seleccionado">
+              <Sparkles className="mr-2 h-4 w-4" /> Cuadre mágico (37,5h)
+            </Button>
+            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin agrupar</SelectItem>
+                <SelectItem value="week">Agrupar por semana</SelectItem>
+                <SelectItem value="month">Agrupar por mes</SelectItem>
+                <SelectItem value="year">Agrupar por año</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar empleado..."
-                className="pl-8 w-[220px]"
+                className="pl-8 w-[200px]"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -192,6 +255,25 @@ function JornadasPage() {
                   <Button size="sm" variant="ghost" onClick={clearSelection}>Cancelar</Button>
                 </div>
               </div>
+            )}
+            {grouped && (
+              <Card className="p-3">
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Resumen agrupado</p>
+                <div className="space-y-1.5">
+                  {grouped.map(([key, list]) => {
+                    const total = list.reduce((a, s) => a + shiftMinutes(s), 0);
+                    return (
+                      <div key={key} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-1.5 text-sm">
+                        <span className="capitalize">{formatGroupLabel(key)}</span>
+                        <span className="tabular-nums">
+                          <span className="text-muted-foreground">{list.length} jornadas · </span>
+                          <span className="font-medium">{formatDuration(total)}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
             )}
             <Card>
               <Table>
