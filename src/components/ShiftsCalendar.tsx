@@ -85,8 +85,6 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
         </div>
         <Button
           size="sm"
-          disabled={!devMode}
-          title={!devMode ? "Activa el modo desarrollador" : undefined}
           onClick={() => tryCreate(format(new Date(), "yyyy-MM-dd"))}
         >
           <Plus className="mr-2 h-4 w-4" /> Añadir fichaje
