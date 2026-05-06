@@ -1,8 +1,7 @@
 import { startOfWeek, endOfWeek, parseISO, format } from "date-fns";
 import type { Shift, ShiftSegment, User } from "@/lib/store";
 
-const TARGET_MIN = 37 * 60 + 30; // 37.5h
-const MAX_OVER_MIN = 15;
+const DEFAULT_TARGET_MIN = 37 * 60 + 30; // 37.5h
 
 const toMin = (t: string) => {
   const [h, m] = t.split(":").map(Number);
@@ -34,14 +33,24 @@ export interface BalanceResult {
   targetMin: number;
 }
 
+export interface BalanceOptions {
+  targetMin?: number;     // default 37.5h
+  jitterMin?: number;     // randomness window (per-segment) in minutes
+  totalJitterMin?: number; // randomness on the global target
+}
+
 /**
- * Adjust a user's week's shifts so total work minutes lands in [TARGET, TARGET+15].
- * Distributes the delta proportionally across work segments, extending end times.
- * If above target+15, contracts work segments (end-times) to land within window.
+ * Adjust a user's week shifts so total work minutes lands near targetMin (+random jitter).
+ * Works iteratively: each call regenerates a new (slightly different) layout.
  */
-export function magicBalanceWeek(user: User, weekShifts: Shift[]): BalanceResult {
-  const target = TARGET_MIN;
-  const upper = TARGET_MIN + MAX_OVER_MIN;
+export function magicBalanceWeek(
+  _user: User,
+  weekShifts: Shift[],
+  opts: BalanceOptions = {},
+): BalanceResult {
+  const target = opts.targetMin ?? DEFAULT_TARGET_MIN;
+  const totalJitter = opts.totalJitterMin ?? 0;
+  const segJitter = opts.jitterMin ?? 0;
 
   const sorted = weekShifts
     .filter((s) => s.segments && s.segments.length)
@@ -49,50 +58,56 @@ export function magicBalanceWeek(user: User, weekShifts: Shift[]): BalanceResult
 
   const totalBefore = sorted.reduce((a, s) => a + shiftWorkMinutes(s), 0);
 
-  const targetTotal = totalBefore < target ? target + Math.floor(MAX_OVER_MIN / 2) : Math.min(totalBefore, upper);
-  let delta = targetTotal - totalBefore; // can be negative if reducing
+  // Random objective inside [target - totalJitter, target + totalJitter]
+  const jitterTotal = Math.round((Math.random() * 2 - 1) * totalJitter);
+  const targetTotal = target + jitterTotal;
+  let delta = targetTotal - totalBefore;
 
-  if (Math.abs(delta) <= 1 && totalBefore >= target && totalBefore <= upper) {
-    return { changed: [], totalBefore, totalAfter: totalBefore, targetMin: target };
-  }
-
-  // Build flat list of work segment refs with day & index
-  type Ref = { shiftId: string; date: string; segIdx: number };
+  type Ref = { shiftId: string; segIdx: number };
   const workRefs: Ref[] = [];
   sorted.forEach((s) => {
     s.segments!.forEach((seg, idx) => {
-      if (seg.type === "work") workRefs.push({ shiftId: s.id, date: s.date, segIdx: idx });
+      if (seg.type === "work") workRefs.push({ shiftId: s.id, segIdx: idx });
     });
   });
   if (workRefs.length === 0) return { changed: [], totalBefore, totalAfter: totalBefore, targetMin: target };
 
-  // Distribute delta in 1-minute increments, round-robin across work segments
-  // Limit per-segment adjustment to ±60 min to avoid weird shifts
-  const adjust: Record<string, number> = {}; // key: shiftId|segIdx -> delta minutes (added to end)
+  const adjust: Record<string, number> = {};
   workRefs.forEach((r) => (adjust[`${r.shiftId}|${r.segIdx}`] = 0));
 
+  // Distribute the delta in 1-minute steps round-robin (deterministic part).
   let i = 0;
-  let safety = 10000;
+  let safety = 20000;
   while (delta !== 0 && safety-- > 0) {
     const r = workRefs[i % workRefs.length];
     const k = `${r.shiftId}|${r.segIdx}`;
-    if (delta > 0 && adjust[k] < 60) {
+    if (delta > 0 && adjust[k] < 90) {
       adjust[k] += 1;
       delta -= 1;
-    } else if (delta < 0 && adjust[k] > -60) {
+    } else if (delta < 0 && adjust[k] > -90) {
       adjust[k] -= 1;
       delta += 1;
     }
     i++;
   }
 
-  // Build new shifts segments respecting that subsequent segments shift their start to avoid overlap.
+  // Add per-segment jitter that nets out to zero so total is preserved.
+  if (segJitter > 0 && workRefs.length > 1) {
+    const jitters = workRefs.map(() => Math.round((Math.random() * 2 - 1) * segJitter));
+    const sum = jitters.reduce((a, b) => a + b, 0);
+    // Spread the negative of the sum across segments to neutralize.
+    const correction = Math.round(sum / workRefs.length);
+    for (let j = 0; j < workRefs.length; j++) {
+      const k = `${workRefs[j].shiftId}|${workRefs[j].segIdx}`;
+      adjust[k] += jitters[j] - correction;
+    }
+  }
+
   const changed: BalanceResult["changed"] = [];
   let totalAfter = 0;
 
   for (const sh of sorted) {
     const segs = sh.segments!.map((s) => ({ ...s }));
-    // walk in order, applying end-shift to work, then re-anchor following segments by their original delta
     let cumulative = 0;
     for (let idx = 0; idx < segs.length; idx++) {
       const seg = segs[idx];
@@ -106,14 +121,55 @@ export function magicBalanceWeek(user: User, weekShifts: Shift[]): BalanceResult
       seg.start = toHHMM(startMin);
       seg.end = toHHMM(endMin);
     }
-    const work = segs.reduce((a, x) => a + segWork(x), 0);
-    totalAfter += work;
+    totalAfter += segs.reduce((a, x) => a + segWork(x), 0);
     const startISO = new Date(`${sh.date}T${segs[0].start}:00`).toISOString();
     const endISO = new Date(`${sh.date}T${segs[segs.length - 1].end}:00`).toISOString();
     changed.push({ id: sh.id, segments: segs, start: startISO, end: endISO });
   }
 
-  return { changed, totalBefore, totalAfter, targetMin: target };
+  return { changed, totalBefore, totalAfter, targetMin: targetTotal };
+}
+
+/**
+ * Re-scale a set of shifts so their total work minutes equals targetMin,
+ * preserving relative day proportions (so Friday stays shorter).
+ */
+export function rebalanceShifts(
+  shifts: Shift[],
+  targetMin: number,
+  jitterMin = 0,
+): BalanceResult["changed"] {
+  const totalBefore = shifts.reduce((a, s) => a + shiftWorkMinutes(s), 0);
+  if (totalBefore === 0) return [];
+  const factor = targetMin / totalBefore;
+
+  const out: BalanceResult["changed"] = [];
+  for (const sh of shifts) {
+    if (!sh.segments || sh.segments.length === 0) continue;
+    const segs = sh.segments.map((s) => ({ ...s }));
+    let cumulative = 0;
+    for (let idx = 0; idx < segs.length; idx++) {
+      const seg = segs[idx];
+      const startMin = toMin(seg.start) + cumulative;
+      let endMin = toMin(seg.end) + cumulative;
+      if (seg.type === "work") {
+        const dur = endMin - startMin;
+        const newDur = Math.max(15, Math.round(dur * factor + (Math.random() * 2 - 1) * jitterMin));
+        const diff = newDur - dur;
+        endMin += diff;
+        cumulative += diff;
+      }
+      seg.start = toHHMM(startMin);
+      seg.end = toHHMM(endMin);
+    }
+    out.push({
+      id: sh.id,
+      segments: segs,
+      start: new Date(`${sh.date}T${segs[0].start}:00`).toISOString(),
+      end: new Date(`${sh.date}T${segs[segs.length - 1].end}:00`).toISOString(),
+    });
+  }
+  return out;
 }
 
 export function groupShiftsByPeriod(
@@ -128,21 +184,9 @@ export function groupShiftsByPeriod(
     else if (period === "month") key = format(d, "yyyy-MM");
     else {
       const ws = startOfWeek(d, { weekStartsOn: 1 });
-      key = `${format(ws, "yyyy")}-W${String(getISOWeek(ws)).padStart(2, "0")}`;
+      key = `${format(ws, "yyyy-MM-dd")}`;
     }
     (out[key] ||= []).push(s);
   }
   return out;
-}
-
-function getISOWeek(d: Date) {
-  const target = new Date(d.valueOf());
-  const dayNr = (d.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNr + 3);
-  const firstThursday = target.valueOf();
-  target.setMonth(0, 1);
-  if (target.getDay() !== 4) {
-    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
-  }
-  return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
 }
