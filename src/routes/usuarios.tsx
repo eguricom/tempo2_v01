@@ -29,9 +29,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppStore, type User, type WeeklySchedule, type Address } from "@/lib/store";
 import { WeeklyScheduleEditor } from "@/components/WeeklyScheduleEditor";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/usuarios")({
