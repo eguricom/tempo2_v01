@@ -134,7 +134,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                     {formatDuration(total)}
                   </span>
                 )}
-                {devMode && (
+                {canEditShiftDate(key, devMode) && (
                   <button
                     type="button"
                     onClick={() => tryCreate(key)}
