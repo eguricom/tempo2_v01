@@ -85,13 +85,27 @@ function VacacionesPage() {
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="grid gap-2"><Label>Fecha</Label><Input type="date" value={hDate} onChange={(e) => setHDate(e.target.value)} /></div>
-                  <div className="grid gap-2 flex-1 min-w-[200px]"><Label>Nombre</Label><Input value={hName} onChange={(e) => setHName(e.target.value)} placeholder="p. ej. Día de la Hispanidad" /></div>
+                  <div className="grid gap-2 flex-1 min-w-[180px]"><Label>Nombre</Label><Input value={hName} onChange={(e) => setHName(e.target.value)} placeholder="p. ej. Día de la Hispanidad" /></div>
+                  <div className="grid gap-2 min-w-[140px]">
+                    <Label>Ámbito</Label>
+                    <Select value={hScope} onValueChange={(v) => setHScope(v as typeof hScope)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="national">Nacional</SelectItem>
+                        <SelectItem value="regional">Regional</SelectItem>
+                        <SelectItem value="local">Local</SelectItem>
+                        <SelectItem value="company">Empresa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Etiqueta</Label><Input value={hLabel} onChange={(e) => setHLabel(e.target.value)} placeholder="Opcional" /></div>
+                  <div className="grid gap-2"><Label>Color</Label><Input type="color" value={hColor} onChange={(e) => setHColor(e.target.value)} className="w-16 p-1" /></div>
                   <Button
                     disabled={!devMode}
                     onClick={() => {
                       if (!hDate || !hName.trim()) { toast.error("Completa fecha y nombre"); return; }
-                      addHoliday({ date: hDate, name: hName.trim() });
-                      setHDate(""); setHName("");
+                      addHoliday({ date: hDate, name: hName.trim(), scope: hScope, color: hColor, label: hLabel.trim() || undefined });
+                      setHDate(""); setHName(""); setHLabel("");
                       toast.success("Festivo añadido");
                     }}
                   >
@@ -103,17 +117,26 @@ function VacacionesPage() {
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Nombre</TableHead>
+                      <TableHead>Ámbito</TableHead>
+                      <TableHead>Etiqueta</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {holidays.length === 0 && (
-                      <TableRow><TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground">Sin festivos</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">Sin festivos</TableCell></TableRow>
                     )}
                     {[...holidays].sort((a, b) => a.date.localeCompare(b.date)).map((h) => (
                       <TableRow key={h.id}>
                         <TableCell className="text-sm tabular-nums">{format(parseISO(h.date), "dd MMM yyyy", { locale: es })}</TableCell>
-                        <TableCell className="text-sm">{h.name}</TableCell>
+                        <TableCell className="text-sm">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: h.color ?? "#ef4444" }} />
+                            {h.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs uppercase text-muted-foreground">{h.scope ?? "national"}</TableCell>
+                        <TableCell className="text-sm">{h.label || "—"}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" disabled={!devMode} onClick={() => { deleteHoliday(h.id); toast.success("Eliminado"); }}>
                             <Trash2 className="h-4 w-4 text-destructive" />
