@@ -17,7 +17,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { useAppStore, shiftMinutes, formatDuration, isHoliday, isVacation, isFreeDay, type Shift } from "@/lib/store";
+import { useAppStore, shiftMinutes, formatDuration, isHoliday, isVacation, isFreeDay, canEditShiftDate, type Shift } from "@/lib/store";
 import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { toast } from "sonner";
 
@@ -30,11 +30,11 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
   const visible = userId ? shifts.filter((s) => s.userId === userId) : shifts;
 
   const canEdit = (s: Shift) =>
-    devMode || (s.status === "in_progress" && s.userId === currentUserId);
+    canEditShiftDate(s.date, devMode) || (s.status === "in_progress" && s.userId === currentUserId);
 
   const tryCreate = (date: string) => {
-    if (!devMode) {
-      toast.error("Activa el modo desarrollador para añadir fichajes manualmente");
+    if (!canEditShiftDate(date, devMode)) {
+      toast.error("Sin modo desarrollador solo se pueden añadir fichajes de los últimos 7 días");
       return;
     }
     setCreatingDate(date);
@@ -42,7 +42,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
 
   const tryEdit = (s: Shift) => {
     if (!canEdit(s)) {
-      toast.error("Solo puedes editar la jornada en curso");
+      toast.error("Fuera del rango editable (7 días)");
       return;
     }
     setEditing(s);
