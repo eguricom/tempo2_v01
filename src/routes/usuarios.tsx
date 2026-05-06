@@ -89,9 +89,10 @@ function UsuariosPage() {
                 <TableRow key={u.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                        {u.name.charAt(0)}
-                      </div>
+                      <Avatar className="h-7 w-7">
+                        {u.avatar && <AvatarImage src={u.avatar} alt={u.name} />}
+                        <AvatarFallback className="bg-primary text-xs text-primary-foreground">{u.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
                       <span className="text-sm font-medium">{u.name} {u.lastName}</span>
                     </div>
                   </TableCell>
