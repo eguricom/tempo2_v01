@@ -255,10 +255,16 @@ function UserForm({
           </p>
           <WeeklyScheduleEditor value={schedule} onChange={setSchedule} />
         </div>
+        <label className="flex items-start gap-2 rounded-md border p-3 text-xs">
+          <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5" />
+          <span className="text-muted-foreground">
+            El usuario consiente el registro horario conforme al RD-Ley 8/2019 y RGPD: se guardan inicio/fin diarios, modalidad y modificaciones (auditoría) durante 4 años, con acceso restringido y derechos ARCO.
+          </span>
+        </label>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => { onSave({ name, lastName, nif, email, companyEmail, phone, address, role, department, weeklyHours, vacationDaysTotal, schedule }); onClose(); }}>
+        <Button onClick={() => { onSave({ name, lastName, nif, email, companyEmail, phone, address, role, department, weeklyHours, vacationDaysTotal, schedule, avatar, consent }); onClose(); }}>
           Guardar
         </Button>
       </DialogFooter>
