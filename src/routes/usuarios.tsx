@@ -184,6 +184,23 @@ function UserForm({
         <DialogTitle>{initial ? "Editar usuario" : "Nuevo usuario"}</DialogTitle>
       </DialogHeader>
       <div className="grid gap-4">
+        <div className="flex items-center gap-3 rounded-md border p-3">
+          <Avatar className="h-14 w-14">
+            {avatar && <AvatarImage src={avatar} alt="avatar" />}
+            <AvatarFallback className="bg-primary text-primary-foreground">{(name || "?").charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <Label className="text-sm">Avatar</Label>
+            <p className="text-[11px] text-muted-foreground">JPG/PNG hasta 1MB</p>
+          </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm hover:bg-muted">
+            <Upload className="h-4 w-4" /> Subir
+            <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleAvatar} />
+          </label>
+          {avatar && (
+            <Button variant="ghost" size="sm" onClick={() => setAvatar(undefined)}>Quitar</Button>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-2"><Label>Nombre</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="grid gap-2"><Label>Primer apellido</Label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
