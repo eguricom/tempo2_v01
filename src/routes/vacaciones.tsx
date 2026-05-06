@@ -169,12 +169,26 @@ function VacacionesPage() {
                   </div>
                   <div className="grid gap-2"><Label>Desde</Label><Input type="date" value={vFrom} onChange={(e) => setVFrom(e.target.value)} /></div>
                   <div className="grid gap-2"><Label>Hasta</Label><Input type="date" value={vTo} onChange={(e) => setVTo(e.target.value)} /></div>
-                  <div className="grid gap-2 flex-1 min-w-[200px]"><Label>Notas</Label><Input value={vNotes} onChange={(e) => setVNotes(e.target.value)} /></div>
+                  <div className="grid gap-2 min-w-[140px]">
+                    <Label>Tipo</Label>
+                    <Select value={vKind} onValueChange={(v) => setVKind(v as typeof vKind)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vacation">Vacaciones</SelectItem>
+                        <SelectItem value="sick">Baja</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="other">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Etiqueta</Label><Input value={vLabel} onChange={(e) => setVLabel(e.target.value)} placeholder="Opcional" /></div>
+                  <div className="grid gap-2"><Label>Color</Label><Input type="color" value={vColor} onChange={(e) => setVColor(e.target.value)} className="w-16 p-1" /></div>
+                  <div className="grid gap-2 flex-1 min-w-[180px]"><Label>Notas</Label><Input value={vNotes} onChange={(e) => setVNotes(e.target.value)} /></div>
                   <Button onClick={() => {
                     if (!vFrom || !vTo) { toast.error("Selecciona el rango"); return; }
                     if (vFrom > vTo) { toast.error("Rango inválido"); return; }
-                    addVacation({ userId: vUser, startDate: vFrom, endDate: vTo, notes: vNotes });
-                    setVFrom(""); setVTo(""); setVNotes("");
+                    addVacation({ userId: vUser, startDate: vFrom, endDate: vTo, notes: vNotes, kind: vKind, color: vColor, label: vLabel.trim() || undefined });
+                    setVFrom(""); setVTo(""); setVNotes(""); setVLabel("");
                     toast.success("Vacaciones añadidas");
                   }}>
                     <Plus className="mr-2 h-4 w-4" /> Añadir
@@ -184,6 +198,7 @@ function VacacionesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Usuario</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Desde</TableHead>
                       <TableHead>Hasta</TableHead>
                       <TableHead>Notas</TableHead>
@@ -192,13 +207,19 @@ function VacacionesPage() {
                   </TableHeader>
                   <TableBody>
                     {vacations.length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">Sin vacaciones</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Sin vacaciones</TableCell></TableRow>
                     )}
                     {[...vacations].sort((a, b) => a.startDate.localeCompare(b.startDate)).map((v) => {
                       const u = users.find((x) => x.id === v.userId);
                       return (
                         <TableRow key={v.id}>
                           <TableCell className="text-sm">{u ? `${u.name} ${u.lastName}` : "—"}</TableCell>
+                          <TableCell className="text-sm">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: v.color ?? "#22c55e" }} />
+                              {v.label || v.kind || "vacation"}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-sm tabular-nums">{format(parseISO(v.startDate), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-sm tabular-nums">{format(parseISO(v.endDate), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{v.notes || "—"}</TableCell>
