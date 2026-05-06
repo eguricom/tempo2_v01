@@ -46,11 +46,14 @@ export function BulkShiftDialog({
   const [allowedDays, setAllowedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [randomize, setRandomize] = useState(false);
   const [jitterSec, setJitterSec] = useState(120);
+  const [useUserSchedule, setUseUserSchedule] = useState(true);
   const [segments, setSegments] = useState<ShiftSegment[]>([
     makeSegment("work", "09:00", "13:00"),
     makeSegment("break", "13:00", "14:00"),
     makeSegment("work", "14:00", "18:00"),
   ]);
+
+  const user = users.find((u) => u.id === userId);
 
   const toggleDay = (i: number) => {
     setAllowedDays((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i].sort()));
@@ -63,19 +66,34 @@ export function BulkShiftDialog({
     );
   }, [range, allowedDays]);
 
-  const skippedCount = useMemo(() => {
-    return previewDays.filter((d) => {
+  const counters = useMemo(() => {
+    let skipped = 0;
+    let noSchedule = 0;
+    let valid = 0;
+    for (const d of previewDays) {
       const date = format(d, "yyyy-MM-dd");
-      return isHoliday(date, holidays) || isVacation(date, userId, vacations) || isFreeDay(date, userId, freeDays);
-    }).length;
-  }, [previewDays, holidays, vacations, freeDays, userId]);
+      if (isHoliday(date, holidays) || isVacation(date, userId, vacations) || isFreeDay(date, userId, freeDays)) {
+        skipped++;
+        continue;
+      }
+      if (useUserSchedule) {
+        const tmpl = user?.schedule?.[d.getDay()] ?? [];
+        if (tmpl.filter((s) => s.type === "work").length === 0) {
+          noSchedule++;
+          continue;
+        }
+      }
+      valid++;
+    }
+    return { skipped, noSchedule, valid };
+  }, [previewDays, holidays, vacations, freeDays, userId, useUserSchedule, user]);
 
   const submit = () => {
     if (!range.from || !range.to) {
       toast.error("Selecciona un rango de fechas en el calendario");
       return;
     }
-    if (segments.length === 0) {
+    if (!useUserSchedule && segments.length === 0) {
       toast.error("Añade al menos una franja");
       return;
     }
@@ -83,7 +101,6 @@ export function BulkShiftDialog({
       toast.error("Ningún día seleccionado con esos filtros");
       return;
     }
-    const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
 
     const toMin = (t: string) => {
       const [h, m] = t.split(":").map(Number);
@@ -96,22 +113,35 @@ export function BulkShiftDialog({
 
     const arr: Omit<Shift, "id">[] = [];
     let skipped = 0;
+    let noSched = 0;
     for (const d of previewDays) {
       const date = format(d, "yyyy-MM-dd");
       if (isHoliday(date, holidays) || isVacation(date, userId, vacations) || isFreeDay(date, userId, freeDays)) {
         skipped++;
         continue;
       }
-      // build segments with optional jitter (in minutes, derived from seconds)
-      const daySegs = ordered.map((s) => {
+      // pick template per day
+      let template: ShiftSegment[];
+      if (useUserSchedule) {
+        const tmpl = user?.schedule?.[d.getDay()] ?? [];
+        if (tmpl.filter((s) => s.type === "work").length === 0) {
+          noSched++;
+          continue;
+        }
+        template = [...tmpl].sort((a, b) => a.start.localeCompare(b.start));
+      } else {
+        template = [...segments].sort((a, b) => a.start.localeCompare(b.start));
+      }
+
+      const daySegs = template.map((s) => {
         if (!randomize) return { ...s, id: Math.random().toString(36).slice(2, 10) };
-        const offMinStart = Math.round(((Math.random() * 2 - 1) * jitterSec) / 60);
-        const offMinEnd = Math.round(((Math.random() * 2 - 1) * jitterSec) / 60);
+        const offS = Math.round(((Math.random() * 2 - 1) * jitterSec) / 60);
+        const offE = Math.round(((Math.random() * 2 - 1) * jitterSec) / 60);
         return {
           ...s,
           id: Math.random().toString(36).slice(2, 10),
-          start: toHHMM(toMin(s.start) + offMinStart),
-          end: toHHMM(toMin(s.end) + offMinEnd),
+          start: toHHMM(toMin(s.start) + offS),
+          end: toHHMM(toMin(s.end) + offE),
         };
       });
       const start = new Date(`${date}T${daySegs[0].start}:00`).toISOString();
@@ -119,7 +149,8 @@ export function BulkShiftDialog({
       arr.push({ userId, date, start, end, status: "finished", segments: daySegs });
     }
     onSave(arr);
-    if (skipped > 0) toast.info(`${skipped} día${skipped === 1 ? "" : "s"} omitido${skipped === 1 ? "" : "s"} (festivos / vacaciones / día libre)`);
+    if (skipped > 0) toast.info(`${skipped} día${skipped === 1 ? "" : "s"} omitido${skipped === 1 ? "" : "s"} (festivo / vacaciones / libre)`);
+    if (noSched > 0) toast.info(`${noSched} día${noSched === 1 ? "" : "s"} sin horario en el usuario`);
     onClose();
   };
 
@@ -128,8 +159,7 @@ export function BulkShiftDialog({
       <DialogHeader>
         <DialogTitle>Añadir jornadas en lote</DialogTitle>
         <DialogDescription>
-          Selecciona un rango en el calendario, marca los días de la semana a incluir y define
-          las franjas horarias que se aplicarán a cada jornada.
+          Por defecto se usan las franjas del horario semanal del usuario (cada día puede ser distinto, p.ej. viernes corto).
         </DialogDescription>
       </DialogHeader>
 
@@ -140,7 +170,7 @@ export function BulkShiftDialog({
             <Select value={userId} onValueChange={setUserId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name} {u.lastName}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -159,7 +189,7 @@ export function BulkShiftDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               {range.from && range.to
-                ? `${format(range.from, "dd/MM/yyyy")} → ${format(range.to, "dd/MM/yyyy")} · ${previewDays.length} jornadas`
+                ? `${format(range.from, "dd/MM/yyyy")} → ${format(range.to, "dd/MM/yyyy")}`
                 : range.from
                 ? `Inicio ${format(range.from, "dd/MM/yyyy")} — selecciona el final`
                 : "Haz clic en una fecha de inicio y otra de fin"}
@@ -192,7 +222,20 @@ export function BulkShiftDialog({
         </div>
 
         <div className="space-y-3">
-          <SegmentEditor segments={segments} onChange={setSegments} />
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox id="usesched" checked={useUserSchedule} onCheckedChange={(v) => setUseUserSchedule(!!v)} />
+              <Label htmlFor="usesched" className="cursor-pointer text-sm">
+                Usar horario semanal del usuario
+              </Label>
+            </div>
+            <p className="text-[11px] text-muted-foreground pl-6">
+              Cada día tomará las franjas configuradas en su perfil. Los días sin horario se omiten.
+            </p>
+          </div>
+
+          {!useUserSchedule && <SegmentEditor segments={segments} onChange={setSegments} />}
+
           <div className="rounded-md border p-3 space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox id="randomize" checked={randomize} onCheckedChange={(v) => setRandomize(!!v)} />
@@ -211,27 +254,24 @@ export function BulkShiftDialog({
                   value={jitterSec}
                   onChange={(e) => setJitterSec(+e.target.value)}
                 />
-                <p className="text-[11px] text-muted-foreground">
-                  Cada franja se desplazará aleatoriamente en un rango de -{jitterSec}s a +{jitterSec}s.
-                </p>
               </div>
             )}
           </div>
-          {skippedCount > 0 && (
-            <p className="text-xs text-warning-foreground bg-warning/10 border border-warning/30 rounded-md p-2">
-              {skippedCount} día{skippedCount === 1 ? "" : "s"} se omitirá{skippedCount === 1 ? "" : "n"} (festivo / vacaciones / día libre).
-            </p>
-          )}
+
+          <div className="rounded-md border p-3 text-xs space-y-1">
+            <p><span className="font-medium">{counters.valid}</span> jornadas a crear</p>
+            {counters.skipped > 0 && <p className="text-warning-foreground">{counters.skipped} días omitidos (festivo/vacaciones/libre)</p>}
+            {counters.noSchedule > 0 && <p className="text-muted-foreground">{counters.noSchedule} días sin horario configurado</p>}
+          </div>
         </div>
       </div>
 
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={submit}>
-          Crear {Math.max(0, previewDays.length - skippedCount) || ""} jornada{previewDays.length - skippedCount === 1 ? "" : "s"}
+        <Button onClick={submit} disabled={counters.valid === 0}>
+          Crear {counters.valid || ""} jornada{counters.valid === 1 ? "" : "s"}
         </Button>
       </DialogFooter>
     </DialogContent>
   );
 }
-

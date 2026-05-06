@@ -29,9 +29,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppStore, type User, type WeeklySchedule, type Address } from "@/lib/store";
 import { WeeklyScheduleEditor } from "@/components/WeeklyScheduleEditor";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/usuarios")({
@@ -87,9 +89,10 @@ function UsuariosPage() {
                 <TableRow key={u.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                        {u.name.charAt(0)}
-                      </div>
+                      <Avatar className="h-7 w-7">
+                        {u.avatar && <AvatarImage src={u.avatar} alt={u.name} />}
+                        <AvatarFallback className="bg-primary text-xs text-primary-foreground">{u.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
                       <span className="text-sm font-medium">{u.name} {u.lastName}</span>
                     </div>
                   </TableCell>
@@ -162,7 +165,18 @@ function UserForm({
   const [schedule, setSchedule] = useState<WeeklySchedule>(
     initial?.schedule ?? { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
   );
+  const [avatar, setAvatar] = useState<string | undefined>(initial?.avatar);
+  const [consent, setConsent] = useState<boolean>(initial?.consent ?? false);
   const setAddr = (k: keyof Address, v: string) => setAddress((a) => ({ ...a, [k]: v }));
+
+  const handleAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) { toast.error("Máx 1MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => setAvatar(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   return (
     <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -170,6 +184,23 @@ function UserForm({
         <DialogTitle>{initial ? "Editar usuario" : "Nuevo usuario"}</DialogTitle>
       </DialogHeader>
       <div className="grid gap-4">
+        <div className="flex items-center gap-3 rounded-md border p-3">
+          <Avatar className="h-14 w-14">
+            {avatar && <AvatarImage src={avatar} alt="avatar" />}
+            <AvatarFallback className="bg-primary text-primary-foreground">{(name || "?").charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <Label className="text-sm">Avatar</Label>
+            <p className="text-[11px] text-muted-foreground">JPG/PNG hasta 1MB</p>
+          </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm hover:bg-muted">
+            <Upload className="h-4 w-4" /> Subir
+            <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleAvatar} />
+          </label>
+          {avatar && (
+            <Button variant="ghost" size="sm" onClick={() => setAvatar(undefined)}>Quitar</Button>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-2"><Label>Nombre</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="grid gap-2"><Label>Primer apellido</Label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
@@ -224,10 +255,16 @@ function UserForm({
           </p>
           <WeeklyScheduleEditor value={schedule} onChange={setSchedule} />
         </div>
+        <label className="flex items-start gap-2 rounded-md border p-3 text-xs">
+          <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5" />
+          <span className="text-muted-foreground">
+            El usuario consiente el registro horario conforme al RD-Ley 8/2019 y RGPD: se guardan inicio/fin diarios, modalidad y modificaciones (auditoría) durante 4 años, con acceso restringido y derechos ARCO.
+          </span>
+        </label>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => { onSave({ name, lastName, nif, email, companyEmail, phone, address, role, department, weeklyHours, vacationDaysTotal, schedule }); onClose(); }}>
+        <Button onClick={() => { onSave({ name, lastName, nif, email, companyEmail, phone, address, role, department, weeklyHours, vacationDaysTotal, schedule, avatar, consent }); onClose(); }}>
           Guardar
         </Button>
       </DialogFooter>

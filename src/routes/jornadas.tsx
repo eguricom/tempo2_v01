@@ -5,6 +5,8 @@ import { ShiftsCalendar } from "@/components/ShiftsCalendar";
 import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { BulkShiftDialog } from "@/components/BulkShiftDialog";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { JornadasWeekView } from "@/components/JornadasWeekView";
+import { SegmentChips } from "@/components/SegmentChips";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogTrigger,
@@ -36,13 +39,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { useAppStore, shiftMinutes, formatDuration, type Shift } from "@/lib/store";
-import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
-import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
-import { es } from "date-fns/locale";
+import { useAppStore, shiftMinutes, formatDuration, canEditShiftDate, type Shift } from "@/lib/store";
+import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { exportShiftsExcel, exportShiftsPDF } from "@/lib/export";
-import { groupShiftsByPeriod, magicBalanceWeek } from "@/lib/balance";
 
 export const Route = createFileRoute("/jornadas")({
   head: () => ({
@@ -58,7 +59,6 @@ function JornadasPage() {
   const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
-  const [groupBy, setGroupBy] = useState<"none" | "week" | "month" | "year">("none");
   const [editing, setEditing] = useState<Shift | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [openBulk, setOpenBulk] = useState(false);
@@ -71,7 +71,7 @@ function JornadasPage() {
       .filter((s) => {
         if (!search) return true;
         const u = users.find((x) => x.id === s.userId);
-        return `${u?.name ?? ""} ${u?.email ?? ""}`.toLowerCase().includes(search.toLowerCase());
+        return `${u?.name ?? ""} ${u?.lastName ?? ""} ${u?.email ?? ""}`.toLowerCase().includes(search.toLowerCase());
       })
       .sort((a, b) => b.start.localeCompare(a.start));
   }, [shifts, search, userFilter, users]);
@@ -98,63 +98,15 @@ function JornadasPage() {
 
   const exportData = () => filtered.filter((s) => selected.size === 0 || selected.has(s.id));
 
-  const grouped = useMemo(() => {
-    if (groupBy === "none") return null;
-    const map = groupShiftsByPeriod(filtered, groupBy);
-    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [filtered, groupBy]);
-
-  const formatGroupLabel = (key: string) => {
-    if (groupBy === "year") return key;
-    if (groupBy === "month") {
-      const [y, m] = key.split("-");
-      return format(new Date(+y, +m - 1, 1), "MMMM yyyy", { locale: es });
-    }
-    // week: yyyy-Www -> show first shift's week range
-    return `Semana ${key}`;
-  };
-
-  const runMagicBalance = () => {
-    if (userFilter === "all") {
-      toast.error("Selecciona un usuario para cuadrar las horas");
-      return;
-    }
-    const user = users.find((u) => u.id === userFilter);
-    if (!user) return;
-    const now = new Date();
-    const ws = startOfWeek(now, { weekStartsOn: 1 });
-    const we = endOfWeek(now, { weekStartsOn: 1 });
-    const weekShifts = shifts.filter((s) => {
-      if (s.userId !== userFilter) return false;
-      const d = parseISO(s.start);
-      return d >= ws && d <= we;
-    });
-    if (weekShifts.length === 0) {
-      toast.error("No hay jornadas esta semana para cuadrar");
-      return;
-    }
-    const result = magicBalanceWeek(user, weekShifts);
-    if (result.changed.length === 0) {
-      toast.info(`Ya cuadrado: ${(result.totalBefore / 60).toFixed(2)}h`);
-      return;
-    }
-    result.changed.forEach((c) => {
-      updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" });
-    });
-    toast.success(
-      `Semana cuadrada: ${(result.totalBefore / 60).toFixed(2)}h → ${(result.totalAfter / 60).toFixed(2)}h`,
-    );
-  };
-
   return (
     <>
       <AppHeader title="Jornadas" />
       <main className="flex-1 space-y-4 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 no-print">
           <div className="flex flex-wrap gap-2">
-            <Dialog open={openNew} onOpenChange={(o) => devMode && setOpenNew(o)}>
+            <Dialog open={openNew} onOpenChange={setOpenNew}>
               <DialogTrigger asChild>
-                <Button disabled={!devMode} title={!devMode ? "Activa el modo desarrollador" : undefined}>
+                <Button>
                   <Plus className="mr-2 h-4 w-4" /> Nueva jornada
                 </Button>
               </DialogTrigger>
@@ -198,18 +150,6 @@ function JornadasPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={runMagicBalance} title="Cuadra la semana actual a 37,5h del usuario seleccionado">
-              <Sparkles className="mr-2 h-4 w-4" /> Cuadre mágico (37,5h)
-            </Button>
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin agrupar</SelectItem>
-                <SelectItem value="week">Agrupar por semana</SelectItem>
-                <SelectItem value="month">Agrupar por mes</SelectItem>
-                <SelectItem value="year">Agrupar por año</SelectItem>
-              </SelectContent>
-            </Select>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -224,20 +164,25 @@ function JornadasPage() {
               <SelectContent>
                 <SelectItem value="all">Todos los usuarios</SelectItem>
                 {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>{u.name} {u.lastName}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <Tabs defaultValue="calendar">
+        <Tabs defaultValue="week">
           <TabsList>
-            <TabsTrigger value="calendar">Calendario</TabsTrigger>
+            <TabsTrigger value="week">Semana</TabsTrigger>
+            <TabsTrigger value="month">Mes</TabsTrigger>
             <TabsTrigger value="list">Listado</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="calendar" className="mt-4">
+          <TabsContent value="week" className="mt-4">
+            <JornadasWeekView userId={userFilter === "all" ? undefined : userFilter} />
+          </TabsContent>
+
+          <TabsContent value="month" className="mt-4">
             <ShiftsCalendar userId={userFilter === "all" ? undefined : userFilter} />
           </TabsContent>
 
@@ -256,25 +201,6 @@ function JornadasPage() {
                 </div>
               </div>
             )}
-            {grouped && (
-              <Card className="p-3">
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Resumen agrupado</p>
-                <div className="space-y-1.5">
-                  {grouped.map(([key, list]) => {
-                    const total = list.reduce((a, s) => a + shiftMinutes(s), 0);
-                    return (
-                      <div key={key} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-1.5 text-sm">
-                        <span className="capitalize">{formatGroupLabel(key)}</span>
-                        <span className="tabular-nums">
-                          <span className="text-muted-foreground">{list.length} jornadas · </span>
-                          <span className="font-medium">{formatDuration(total)}</span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
             <Card>
               <Table>
                 <TableHeader>
@@ -289,8 +215,7 @@ function JornadasPage() {
                     <TableHead>Usuario</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Fecha</TableHead>
-                    <TableHead>Inicio</TableHead>
-                    <TableHead>Fin</TableHead>
+                    <TableHead>Franjas</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Observaciones</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -299,14 +224,14 @@ function JornadasPage() {
                 <TableBody>
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
                         No hay jornadas registradas todavía.
                       </TableCell>
                     </TableRow>
                   )}
                   {filtered.map((s) => {
                     const u = users.find((x) => x.id === s.userId);
-                    const editable = devMode || (s.status === "in_progress" && s.userId === currentUserId);
+                    const editable = canEditShiftDate(s.date, devMode) || (s.status === "in_progress" && s.userId === currentUserId);
                     return (
                       <TableRow key={s.id} data-state={selected.has(s.id) ? "selected" : undefined}>
                         <TableCell>
@@ -318,10 +243,11 @@ function JornadasPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                              {u?.name.charAt(0)}
-                            </div>
-                            <span className="text-sm">{u?.name}</span>
+                            <Avatar className="h-7 w-7">
+                              {u?.avatar && <AvatarImage src={u.avatar} alt={u.name} />}
+                              <AvatarFallback className="bg-primary text-xs text-primary-foreground">{u?.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{u?.name} {u?.lastName}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -330,18 +256,18 @@ function JornadasPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "dd/MM/yyyy")}</TableCell>
-                        <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "HH:mm")}</TableCell>
-                        <TableCell className="text-sm tabular-nums">{s.end ? format(parseISO(s.end), "HH:mm") : "—"}</TableCell>
+                        <TableCell><SegmentChips segments={s.segments} /></TableCell>
                         <TableCell className="text-sm font-medium tabular-nums">{formatDuration(shiftMinutes(s))}</TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{s.notes || "—"}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" disabled={!editable} onClick={() => setEditing(s)}>
+                          <Button variant="ghost" size="icon" disabled={!editable} onClick={() => setEditing(s)}
+                            title={!editable ? "Fuera del rango editable (7 días)" : undefined}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            disabled={!devMode}
+                            disabled={!editable}
                             onClick={() => { deleteShift(s.id); toast.success("Jornada eliminada"); }}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />

@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
-import { useAppStore, type Shift, type ShiftSegment } from "@/lib/store";
+import { useAppStore, canEditShiftDate, type Shift, type ShiftSegment, type WorkMode } from "@/lib/store";
 import { SegmentEditor, makeSegment } from "@/components/SegmentEditor";
 import { toast } from "sonner";
 
@@ -52,15 +52,20 @@ export function ShiftFormDialog({
   onSave: (s: Omit<Shift, "id">) => void;
   onDelete?: () => void;
 }) {
-  const { users, currentUserId } = useAppStore();
+  const { users, currentUserId, devMode } = useAppStore();
   const [userId, setUserId] = useState(initial?.userId ?? defaultUserId ?? currentUserId);
   const [date, setDate] = useState(
     initial ? initial.start.slice(0, 10) : defaultDate ?? new Date().toISOString().slice(0, 10),
   );
   const [segments, setSegments] = useState<ShiftSegment[]>(defaultSegments(initial));
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [workMode, setWorkMode] = useState<WorkMode>(initial?.workMode ?? "presencial");
 
   const submit = () => {
+    if (!canEditShiftDate(date, devMode)) {
+      toast.error("Sin modo desarrollador solo se pueden editar fichajes de los últimos 7 días");
+      return;
+    }
     if (segments.length === 0) {
       toast.error("Añade al menos una franja");
       return;
@@ -68,7 +73,7 @@ export function ShiftFormDialog({
     const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
     const start = new Date(`${date}T${ordered[0].start}:00`).toISOString();
     const end = new Date(`${date}T${ordered[ordered.length - 1].end}:00`).toISOString();
-    onSave({ userId, date, start, end, notes, status: "finished", segments: ordered });
+    onSave({ userId, date, start, end, notes, status: "finished", segments: ordered, workMode });
     onClose();
   };
 
@@ -98,9 +103,26 @@ export function ShiftFormDialog({
         <SegmentEditor segments={segments} onChange={setSegments} />
 
         <div className="grid gap-2">
+          <Label>Modalidad</Label>
+          <Select value={workMode} onValueChange={(v) => setWorkMode(v as WorkMode)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="presencial">Presencial</SelectItem>
+              <SelectItem value="teletrabajo">Teletrabajo</SelectItem>
+              <SelectItem value="movil">Personal móvil</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-2">
           <Label>Observaciones</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" />
         </div>
+        {!canEditShiftDate(date, devMode) && (
+          <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+            Sin modo desarrollador solo se pueden añadir/editar jornadas de los últimos 7 días.
+          </p>
+        )}
       </div>
       <DialogFooter className="flex-row justify-between sm:justify-between">
         <div>

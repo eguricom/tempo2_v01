@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type Role = "admin" | "employee";
+export type WorkMode = "presencial" | "teletrabajo" | "movil";
 
 export type WeeklySchedule = Record<number, ShiftSegment[]>; // 0..6 (0=Dom)
 
@@ -26,6 +27,8 @@ export interface User {
   weeklyHours: number;
   vacationDaysTotal: number;
   schedule: WeeklySchedule;
+  avatar?: string; // base64 data URL
+  consent?: boolean;
 }
 
 export type ShiftStatus = "in_progress" | "finished";
@@ -47,6 +50,8 @@ export interface Shift {
   notes?: string;
   status: ShiftStatus;
   segments?: ShiftSegment[];
+  workMode?: WorkMode;
+  actorId?: string; // who created/last edited
 }
 
 export type AbsenceStatus = "pending" | "approved" | "rejected";
@@ -67,18 +72,26 @@ export interface Department {
   color: string;
 }
 
+export type HolidayScope = "national" | "regional" | "local" | "company";
 export interface Holiday {
   id: string;
   date: string; // YYYY-MM-DD
   name: string;
+  scope?: HolidayScope;
+  color?: string;
+  label?: string;
 }
 
+export type VacationKind = "vacation" | "sick" | "personal" | "other";
 export interface VacationRange {
   id: string;
   userId: string;
   startDate: string;
   endDate: string;
   notes?: string;
+  kind?: VacationKind;
+  color?: string;
+  label?: string;
 }
 
 export interface FreeDay {
@@ -96,6 +109,15 @@ export interface CompanyConfig {
   workDays: number[];
 }
 
+export interface AuditEntry {
+  id: string;
+  ts: string;
+  actorId: string | null;
+  userId: string | null;
+  action: string;
+  details?: string;
+}
+
 interface AppState {
   currentUserId: string;
   sessionUserId: string | null;
@@ -110,6 +132,7 @@ interface AppState {
   vacations: VacationRange[];
   freeDays: FreeDay[];
   config: CompanyConfig;
+  auditLog: AuditEntry[];
 
   setCurrentUser: (id: string) => void;
   login: (name: string, lastName: string, nif: string) => User | null;
@@ -134,8 +157,10 @@ interface AppState {
   deleteAbsence: (id: string) => void;
 
   addHoliday: (h: Omit<Holiday, "id">) => void;
+  updateHoliday: (id: string, h: Partial<Holiday>) => void;
   deleteHoliday: (id: string) => void;
   addVacation: (v: Omit<VacationRange, "id">) => void;
+  updateVacation: (id: string, v: Partial<VacationRange>) => void;
   deleteVacation: (id: string) => void;
   addFreeDay: (f: Omit<FreeDay, "id">) => void;
   deleteFreeDay: (id: string) => void;
@@ -143,6 +168,8 @@ interface AppState {
   addDepartment: (d: Omit<Department, "id">) => void;
   deleteDepartment: (id: string) => void;
   updateConfig: (c: Partial<CompanyConfig>) => void;
+
+  logAudit: (action: string, details?: string, userId?: string | null) => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -150,20 +177,23 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const emptySchedule = (): WeeklySchedule => ({ 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] });
 
 const standardSchedule = (): WeeklySchedule => {
-  const day = (): ShiftSegment[] => [
+  const longDay = (): ShiftSegment[] => [
     { id: uid(), type: "work", start: "09:00", end: "13:00" },
     { id: uid(), type: "break", start: "13:00", end: "14:00" },
     { id: uid(), type: "work", start: "14:00", end: "17:30" },
   ];
-  return { 0: [], 1: day(), 2: day(), 3: day(), 4: day(), 5: day(), 6: [] };
+  const friday = (): ShiftSegment[] => [
+    { id: uid(), type: "work", start: "09:00", end: "15:00" },
+  ];
+  return { 0: [], 1: longDay(), 2: longDay(), 3: longDay(), 4: longDay(), 5: friday(), 6: [] };
 };
 
 const emptyAddress = (): Address => ({ street: "", floor: "", postalCode: "", city: "" });
 
 const seedUsers: User[] = [
-  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", companyEmail: "ana@empresa.com", phone: "", address: emptyAddress(), role: "admin", department: "Dirección", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule() },
-  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", companyEmail: "carlos@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Ventas", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule() },
-  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", companyEmail: "laura@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule() },
+  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", companyEmail: "ana@empresa.com", phone: "", address: emptyAddress(), role: "admin", department: "Dirección", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), consent: true },
+  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", companyEmail: "carlos@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Ventas", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), consent: true },
+  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", companyEmail: "laura@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule(), consent: true },
 ];
 
 const seedDepartments: Department[] = [
@@ -202,12 +232,22 @@ export function isFreeDay(date: string, userId: string, freeDays: FreeDay[]): Fr
   return freeDays.find((f) => f.userId === userId && f.date === date);
 }
 
+/** Allow manual editing/adding only for the last 7 days (rolling) when dev mode is off. */
+export function canEditShiftDate(dateISO: string, devMode: boolean): boolean {
+  if (devMode) return true;
+  const d = new Date(dateISO + (dateISO.length === 10 ? "T00:00:00" : ""));
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor((today.getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 86400000);
+  return diffDays >= 0 && diffDays <= 7;
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       currentUserId: "u1",
       sessionUserId: null,
-      devMode: true,
+      devMode: false,
       devPassword: "molo",
 
       users: seedUsers,
@@ -217,6 +257,7 @@ export const useAppStore = create<AppState>()(
       holidays: [],
       vacations: [],
       freeDays: [],
+      auditLog: [],
       config: {
         weeklyHours: 37.5,
         annualHours: 1723,
@@ -236,42 +277,83 @@ export const useAppStore = create<AppState>()(
         );
         if (!user) return null;
         set({ sessionUserId: user.id, currentUserId: user.id });
+        get().logAudit("login", `Sesión iniciada`, user.id);
         return user;
       },
-      logout: () => set({ sessionUserId: null }),
+      logout: () => {
+        const uid = get().sessionUserId;
+        get().logAudit("logout", `Sesión cerrada`, uid);
+        set({ sessionUserId: null });
+      },
       toggleDevMode: (password) => {
         if (password !== get().devPassword) return false;
         set((s) => ({ devMode: !s.devMode }));
+        get().logAudit("dev_mode_toggle", `Modo desarrollador → ${get().devMode ? "ON" : "OFF"}`);
         return true;
       },
 
-      addUser: (u) => set((s) => ({ users: [...s.users, { ...u, id: uid() }] })),
-      updateUser: (id, u) => set((s) => ({ users: s.users.map((x) => (x.id === id ? { ...x, ...u } : x)) })),
-      deleteUser: (id) => set((s) => ({ users: s.users.filter((x) => x.id !== id) })),
+      logAudit: (action, details, userId) =>
+        set((s) => ({
+          auditLog: [
+            { id: uid(), ts: new Date().toISOString(), actorId: s.sessionUserId, userId: userId ?? null, action, details },
+            ...s.auditLog,
+          ].slice(0, 5000),
+        })),
 
-      startShift: (userId) =>
+      addUser: (u) => {
+        set((s) => ({ users: [...s.users, { ...u, id: uid() }] }));
+        get().logAudit("user_create", u.name);
+      },
+      updateUser: (id, u) => {
+        set((s) => ({ users: s.users.map((x) => (x.id === id ? { ...x, ...u } : x)) }));
+        get().logAudit("user_update", id, id);
+      },
+      deleteUser: (id) => {
+        set((s) => ({ users: s.users.filter((x) => x.id !== id) }));
+        get().logAudit("user_delete", id, id);
+      },
+
+      startShift: (userId) => {
         set((s) => {
           const now = new Date();
           const date = now.toISOString().slice(0, 10);
           return {
             shifts: [
               ...s.shifts,
-              { id: uid(), userId, date, start: now.toISOString(), end: null, status: "in_progress" },
+              { id: uid(), userId, date, start: now.toISOString(), end: null, status: "in_progress", actorId: s.sessionUserId ?? userId },
             ],
           };
-        }),
-      endShift: (userId) =>
+        });
+        get().logAudit("shift_start", undefined, userId);
+      },
+      endShift: (userId) => {
         set((s) => ({
           shifts: s.shifts.map((sh) =>
             sh.userId === userId && sh.status === "in_progress"
               ? { ...sh, end: new Date().toISOString(), status: "finished" }
               : sh,
           ),
-        })),
-      addShift: (sh) => set((s) => ({ shifts: [...s.shifts, { ...sh, id: uid() }] })),
-      addShiftsBulk: (arr) => set((s) => ({ shifts: [...s.shifts, ...arr.map((sh) => ({ ...sh, id: uid() }))] })),
-      updateShift: (id, sh) => set((s) => ({ shifts: s.shifts.map((x) => (x.id === id ? { ...x, ...sh } : x)) })),
-      deleteShift: (id) => set((s) => ({ shifts: s.shifts.filter((x) => x.id !== id) })),
+        }));
+        get().logAudit("shift_end", undefined, userId);
+      },
+      addShift: (sh) => {
+        const actorId = get().sessionUserId ?? null;
+        set((s) => ({ shifts: [...s.shifts, { ...sh, id: uid(), actorId: sh.actorId ?? actorId ?? sh.userId }] }));
+        get().logAudit("shift_add", sh.date, sh.userId);
+      },
+      addShiftsBulk: (arr) => {
+        const actorId = get().sessionUserId ?? null;
+        set((s) => ({ shifts: [...s.shifts, ...arr.map((sh) => ({ ...sh, id: uid(), actorId: sh.actorId ?? actorId ?? sh.userId }))] }));
+        get().logAudit("shift_bulk_add", `${arr.length} jornadas`);
+      },
+      updateShift: (id, sh) => {
+        set((s) => ({ shifts: s.shifts.map((x) => (x.id === id ? { ...x, ...sh } : x)) }));
+        get().logAudit("shift_update", id);
+      },
+      deleteShift: (id) => {
+        set((s) => ({ shifts: s.shifts.filter((x) => x.id !== id) }));
+        get().logAudit("shift_delete", id);
+      },
 
       autoFillShifts: (userId, fromISO, toISO) => {
         const state = get();
@@ -303,9 +385,13 @@ export const useAppStore = create<AppState>()(
             status: "finished",
             segments: segs,
             notes: "Autocompletado desde horario",
+            actorId: state.sessionUserId ?? userId,
           });
         }
-        if (created.length) set((s) => ({ shifts: [...s.shifts, ...created] }));
+        if (created.length) {
+          set((s) => ({ shifts: [...s.shifts, ...created] }));
+          get().logAudit("shift_autofill", `${created.length} jornadas`, userId);
+        }
         return created.length;
       },
 
@@ -313,9 +399,17 @@ export const useAppStore = create<AppState>()(
       updateAbsence: (id, a) => set((s) => ({ absences: s.absences.map((x) => (x.id === id ? { ...x, ...a } : x)) })),
       deleteAbsence: (id) => set((s) => ({ absences: s.absences.filter((x) => x.id !== id) })),
 
-      addHoliday: (h) => set((s) => ({ holidays: [...s.holidays.filter((x) => x.date !== h.date), { ...h, id: uid() }] })),
-      deleteHoliday: (id) => set((s) => ({ holidays: s.holidays.filter((x) => x.id !== id) })),
+      addHoliday: (h) => {
+        set((s) => ({ holidays: [...s.holidays.filter((x) => x.date !== h.date), { ...h, id: uid() }] }));
+        get().logAudit("holiday_add", `${h.date} ${h.name}`);
+      },
+      updateHoliday: (id, h) => set((s) => ({ holidays: s.holidays.map((x) => (x.id === id ? { ...x, ...h } : x)) })),
+      deleteHoliday: (id) => {
+        set((s) => ({ holidays: s.holidays.filter((x) => x.id !== id) }));
+        get().logAudit("holiday_delete", id);
+      },
       addVacation: (v) => set((s) => ({ vacations: [...s.vacations, { ...v, id: uid() }] })),
+      updateVacation: (id, v) => set((s) => ({ vacations: s.vacations.map((x) => (x.id === id ? { ...x, ...v } : x)) })),
       deleteVacation: (id) => set((s) => ({ vacations: s.vacations.filter((x) => x.id !== id) })),
       addFreeDay: (f) => set((s) => ({ freeDays: [...s.freeDays.filter((x) => !(x.date === f.date && x.userId === f.userId)), { ...f, id: uid() }] })),
       deleteFreeDay: (id) => set((s) => ({ freeDays: s.freeDays.filter((x) => x.id !== id) })),
@@ -325,8 +419,8 @@ export const useAppStore = create<AppState>()(
       updateConfig: (c) => set((s) => ({ config: { ...s.config, ...c } })),
     }),
     {
-      name: "tempo-store-v3",
-      version: 3,
+      name: "tempo-store-v4",
+      version: 4,
       migrate: (persisted: unknown) => {
         const p = (persisted ?? {}) as Partial<AppState> & Record<string, unknown>;
         const users = Array.isArray(p.users) ? (p.users as Partial<User>[]) : seedUsers;
@@ -344,6 +438,8 @@ export const useAppStore = create<AppState>()(
           weeklyHours: u.weeklyHours ?? 37.5,
           vacationDaysTotal: u.vacationDaysTotal ?? 22,
           schedule: (u as { schedule?: WeeklySchedule }).schedule ?? emptySchedule(),
+          avatar: (u as { avatar?: string }).avatar,
+          consent: (u as { consent?: boolean }).consent ?? false,
         }));
         return {
           ...p,
@@ -351,8 +447,9 @@ export const useAppStore = create<AppState>()(
           holidays: (p as { holidays?: Holiday[] }).holidays ?? [],
           vacations: (p as { vacations?: VacationRange[] }).vacations ?? [],
           freeDays: (p as { freeDays?: FreeDay[] }).freeDays ?? [],
+          auditLog: (p as { auditLog?: AuditEntry[] }).auditLog ?? [],
           sessionUserId: (p as { sessionUserId?: string | null }).sessionUserId ?? null,
-          devMode: (p as { devMode?: boolean }).devMode ?? true,
+          devMode: (p as { devMode?: boolean }).devMode ?? false,
           devPassword: (p as { devPassword?: string }).devPassword ?? "molo",
         };
       },
@@ -377,6 +474,23 @@ export function shiftMinutes(s: Shift): number {
 export function breakMinutes(s: Shift): number {
   if (!s.segments) return 0;
   return s.segments.filter((x) => x.type === "break").reduce((a, x) => a + segMinutes(x), 0);
+}
+
+/** Minutes worked between 22:00 and 06:00 (night work). */
+export function nightMinutes(s: Shift): number {
+  if (!s.segments) return 0;
+  let n = 0;
+  for (const seg of s.segments) {
+    if (seg.type !== "work") continue;
+    const [sh, sm] = seg.start.split(":").map(Number);
+    const [eh, em] = seg.end.split(":").map(Number);
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    // night windows in minutes: 0..360 and 1320..1440
+    n += Math.max(0, Math.min(end, 360) - Math.max(start, 0));
+    n += Math.max(0, Math.min(end, 1440) - Math.max(start, 1320));
+  }
+  return n;
 }
 
 export function formatDuration(mins: number) {

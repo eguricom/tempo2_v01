@@ -47,11 +47,17 @@ function VacacionesPage() {
 
   const [hDate, setHDate] = useState("");
   const [hName, setHName] = useState("");
+  const [hScope, setHScope] = useState<"national" | "regional" | "local" | "company">("national");
+  const [hColor, setHColor] = useState("#ef4444");
+  const [hLabel, setHLabel] = useState("");
 
   const [vUser, setVUser] = useState(currentUserId);
   const [vFrom, setVFrom] = useState("");
   const [vTo, setVTo] = useState("");
   const [vNotes, setVNotes] = useState("");
+  const [vKind, setVKind] = useState<"vacation" | "sick" | "personal" | "other">("vacation");
+  const [vColor, setVColor] = useState("#22c55e");
+  const [vLabel, setVLabel] = useState("");
 
   const [fUser, setFUser] = useState(currentUserId);
   const [fDate, setFDate] = useState("");
@@ -79,13 +85,27 @@ function VacacionesPage() {
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="grid gap-2"><Label>Fecha</Label><Input type="date" value={hDate} onChange={(e) => setHDate(e.target.value)} /></div>
-                  <div className="grid gap-2 flex-1 min-w-[200px]"><Label>Nombre</Label><Input value={hName} onChange={(e) => setHName(e.target.value)} placeholder="p. ej. Día de la Hispanidad" /></div>
+                  <div className="grid gap-2 flex-1 min-w-[180px]"><Label>Nombre</Label><Input value={hName} onChange={(e) => setHName(e.target.value)} placeholder="p. ej. Día de la Hispanidad" /></div>
+                  <div className="grid gap-2 min-w-[140px]">
+                    <Label>Ámbito</Label>
+                    <Select value={hScope} onValueChange={(v) => setHScope(v as typeof hScope)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="national">Nacional</SelectItem>
+                        <SelectItem value="regional">Regional</SelectItem>
+                        <SelectItem value="local">Local</SelectItem>
+                        <SelectItem value="company">Empresa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Etiqueta</Label><Input value={hLabel} onChange={(e) => setHLabel(e.target.value)} placeholder="Opcional" /></div>
+                  <div className="grid gap-2"><Label>Color</Label><Input type="color" value={hColor} onChange={(e) => setHColor(e.target.value)} className="w-16 p-1" /></div>
                   <Button
                     disabled={!devMode}
                     onClick={() => {
                       if (!hDate || !hName.trim()) { toast.error("Completa fecha y nombre"); return; }
-                      addHoliday({ date: hDate, name: hName.trim() });
-                      setHDate(""); setHName("");
+                      addHoliday({ date: hDate, name: hName.trim(), scope: hScope, color: hColor, label: hLabel.trim() || undefined });
+                      setHDate(""); setHName(""); setHLabel("");
                       toast.success("Festivo añadido");
                     }}
                   >
@@ -97,17 +117,26 @@ function VacacionesPage() {
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Nombre</TableHead>
+                      <TableHead>Ámbito</TableHead>
+                      <TableHead>Etiqueta</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {holidays.length === 0 && (
-                      <TableRow><TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground">Sin festivos</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">Sin festivos</TableCell></TableRow>
                     )}
                     {[...holidays].sort((a, b) => a.date.localeCompare(b.date)).map((h) => (
                       <TableRow key={h.id}>
                         <TableCell className="text-sm tabular-nums">{format(parseISO(h.date), "dd MMM yyyy", { locale: es })}</TableCell>
-                        <TableCell className="text-sm">{h.name}</TableCell>
+                        <TableCell className="text-sm">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: h.color ?? "#ef4444" }} />
+                            {h.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs uppercase text-muted-foreground">{h.scope ?? "national"}</TableCell>
+                        <TableCell className="text-sm">{h.label || "—"}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" disabled={!devMode} onClick={() => { deleteHoliday(h.id); toast.success("Eliminado"); }}>
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -140,12 +169,26 @@ function VacacionesPage() {
                   </div>
                   <div className="grid gap-2"><Label>Desde</Label><Input type="date" value={vFrom} onChange={(e) => setVFrom(e.target.value)} /></div>
                   <div className="grid gap-2"><Label>Hasta</Label><Input type="date" value={vTo} onChange={(e) => setVTo(e.target.value)} /></div>
-                  <div className="grid gap-2 flex-1 min-w-[200px]"><Label>Notas</Label><Input value={vNotes} onChange={(e) => setVNotes(e.target.value)} /></div>
+                  <div className="grid gap-2 min-w-[140px]">
+                    <Label>Tipo</Label>
+                    <Select value={vKind} onValueChange={(v) => setVKind(v as typeof vKind)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vacation">Vacaciones</SelectItem>
+                        <SelectItem value="sick">Baja</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="other">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Etiqueta</Label><Input value={vLabel} onChange={(e) => setVLabel(e.target.value)} placeholder="Opcional" /></div>
+                  <div className="grid gap-2"><Label>Color</Label><Input type="color" value={vColor} onChange={(e) => setVColor(e.target.value)} className="w-16 p-1" /></div>
+                  <div className="grid gap-2 flex-1 min-w-[180px]"><Label>Notas</Label><Input value={vNotes} onChange={(e) => setVNotes(e.target.value)} /></div>
                   <Button onClick={() => {
                     if (!vFrom || !vTo) { toast.error("Selecciona el rango"); return; }
                     if (vFrom > vTo) { toast.error("Rango inválido"); return; }
-                    addVacation({ userId: vUser, startDate: vFrom, endDate: vTo, notes: vNotes });
-                    setVFrom(""); setVTo(""); setVNotes("");
+                    addVacation({ userId: vUser, startDate: vFrom, endDate: vTo, notes: vNotes, kind: vKind, color: vColor, label: vLabel.trim() || undefined });
+                    setVFrom(""); setVTo(""); setVNotes(""); setVLabel("");
                     toast.success("Vacaciones añadidas");
                   }}>
                     <Plus className="mr-2 h-4 w-4" /> Añadir
@@ -155,6 +198,7 @@ function VacacionesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Usuario</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Desde</TableHead>
                       <TableHead>Hasta</TableHead>
                       <TableHead>Notas</TableHead>
@@ -163,13 +207,19 @@ function VacacionesPage() {
                   </TableHeader>
                   <TableBody>
                     {vacations.length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">Sin vacaciones</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Sin vacaciones</TableCell></TableRow>
                     )}
                     {[...vacations].sort((a, b) => a.startDate.localeCompare(b.startDate)).map((v) => {
                       const u = users.find((x) => x.id === v.userId);
                       return (
                         <TableRow key={v.id}>
                           <TableCell className="text-sm">{u ? `${u.name} ${u.lastName}` : "—"}</TableCell>
+                          <TableCell className="text-sm">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: v.color ?? "#22c55e" }} />
+                              {v.label || v.kind || "vacation"}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-sm tabular-nums">{format(parseISO(v.startDate), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-sm tabular-nums">{format(parseISO(v.endDate), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{v.notes || "—"}</TableCell>
