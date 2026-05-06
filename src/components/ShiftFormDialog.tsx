@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
-import { useAppStore, type Shift, type ShiftSegment } from "@/lib/store";
+import { useAppStore, canEditShiftDate, type Shift, type ShiftSegment, type WorkMode } from "@/lib/store";
 import { SegmentEditor, makeSegment } from "@/components/SegmentEditor";
 import { toast } from "sonner";
 
