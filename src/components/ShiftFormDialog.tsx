@@ -103,9 +103,26 @@ export function ShiftFormDialog({
         <SegmentEditor segments={segments} onChange={setSegments} />
 
         <div className="grid gap-2">
+          <Label>Modalidad</Label>
+          <Select value={workMode} onValueChange={(v) => setWorkMode(v as WorkMode)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="presencial">Presencial</SelectItem>
+              <SelectItem value="teletrabajo">Teletrabajo</SelectItem>
+              <SelectItem value="movil">Personal móvil</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-2">
           <Label>Observaciones</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" />
         </div>
+        {!canEditShiftDate(date, devMode) && (
+          <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+            Sin modo desarrollador solo se pueden añadir/editar jornadas de los últimos 7 días.
+          </p>
+        )}
       </div>
       <DialogFooter className="flex-row justify-between sm:justify-between">
         <div>
