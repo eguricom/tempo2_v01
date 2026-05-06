@@ -165,7 +165,18 @@ function UserForm({
   const [schedule, setSchedule] = useState<WeeklySchedule>(
     initial?.schedule ?? { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
   );
+  const [avatar, setAvatar] = useState<string | undefined>(initial?.avatar);
+  const [consent, setConsent] = useState<boolean>(initial?.consent ?? false);
   const setAddr = (k: keyof Address, v: string) => setAddress((a) => ({ ...a, [k]: v }));
+
+  const handleAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) { toast.error("Máx 1MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => setAvatar(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   return (
     <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
