@@ -47,11 +47,17 @@ function VacacionesPage() {
 
   const [hDate, setHDate] = useState("");
   const [hName, setHName] = useState("");
+  const [hScope, setHScope] = useState<"national" | "regional" | "local" | "company">("national");
+  const [hColor, setHColor] = useState("#ef4444");
+  const [hLabel, setHLabel] = useState("");
 
   const [vUser, setVUser] = useState(currentUserId);
   const [vFrom, setVFrom] = useState("");
   const [vTo, setVTo] = useState("");
   const [vNotes, setVNotes] = useState("");
+  const [vKind, setVKind] = useState<"vacation" | "sick" | "personal" | "other">("vacation");
+  const [vColor, setVColor] = useState("#22c55e");
+  const [vLabel, setVLabel] = useState("");
 
   const [fUser, setFUser] = useState(currentUserId);
   const [fDate, setFDate] = useState("");
