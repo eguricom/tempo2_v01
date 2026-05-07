@@ -434,8 +434,8 @@ export const useAppStore = create<AppState>()(
       updateConfig: (c) => set((s) => ({ config: { ...s.config, ...c } })),
     }),
     {
-      name: "tempo-store-v4",
-      version: 4,
+      name: "tempo-store-v5",
+      version: 5,
       migrate: (persisted: unknown) => {
         const p = (persisted ?? {}) as Partial<AppState> & Record<string, unknown>;
         const users = Array.isArray(p.users) ? (p.users as Partial<User>[]) : seedUsers;
