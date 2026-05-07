@@ -28,6 +28,7 @@ export interface User {
   vacationDaysTotal: number;
   schedule: WeeklySchedule;
   avatar?: string; // base64 data URL
+  avatarColor?: string; // hex/oklch for differentiating users
   consent?: boolean;
 }
 
