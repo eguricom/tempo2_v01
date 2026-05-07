@@ -73,6 +73,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <SidebarProvider>
+      <DevModeWatcher />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
@@ -83,4 +84,24 @@ function RootComponent() {
       <LoginOverlay />
     </SidebarProvider>
   );
+}
+
+import { useEffect } from "react";
+import { useAppStore } from "@/lib/store";
+
+function DevModeWatcher() {
+  const { devMode, pingDevActivity, checkDevTimeout } = useAppStore();
+  useEffect(() => {
+    if (!devMode) return;
+    const onActivity = () => pingDevActivity();
+    window.addEventListener("click", onActivity);
+    window.addEventListener("keydown", onActivity);
+    const interval = window.setInterval(() => checkDevTimeout(), 30_000);
+    return () => {
+      window.removeEventListener("click", onActivity);
+      window.removeEventListener("keydown", onActivity);
+      window.clearInterval(interval);
+    };
+  }, [devMode, pingDevActivity, checkDevTimeout]);
+  return null;
 }
