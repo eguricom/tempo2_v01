@@ -385,7 +385,6 @@ export const useAppStore = create<AppState>()(
             end: new Date(`${date}T${endTime}:00`).toISOString(),
             status: "finished",
             segments: segs,
-            notes: "Autocompletado desde horario",
             actorId: state.sessionUserId ?? userId,
           });
         }
