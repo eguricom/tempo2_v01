@@ -292,9 +292,20 @@ export const useAppStore = create<AppState>()(
       },
       toggleDevMode: (password) => {
         if (password !== get().devPassword) return false;
-        set((s) => ({ devMode: !s.devMode }));
+        set((s) => ({ devMode: !s.devMode, devModeLastActivity: !s.devMode ? Date.now() : 0 }));
         get().logAudit("dev_mode_toggle", `Modo desarrollador → ${get().devMode ? "ON" : "OFF"}`);
         return true;
+      },
+      pingDevActivity: () => {
+        if (get().devMode) set({ devModeLastActivity: Date.now() });
+      },
+      checkDevTimeout: () => {
+        const s = get();
+        if (!s.devMode) return;
+        if (Date.now() - s.devModeLastActivity > 15 * 60 * 1000) {
+          set({ devMode: false, devModeLastActivity: 0 });
+          s.logAudit("dev_mode_timeout", "Auto-desactivado por inactividad (15 min)");
+        }
       },
 
       logAudit: (action, details, userId) =>
