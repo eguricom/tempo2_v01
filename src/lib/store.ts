@@ -181,10 +181,10 @@ const standardSchedule = (): WeeklySchedule => {
   const longDay = (): ShiftSegment[] => [
     { id: uid(), type: "work", start: "09:00", end: "13:00" },
     { id: uid(), type: "break", start: "13:00", end: "14:00" },
-    { id: uid(), type: "work", start: "14:00", end: "17:30" },
+    { id: uid(), type: "work", start: "14:00", end: "18:00" },
   ];
   const friday = (): ShiftSegment[] => [
-    { id: uid(), type: "work", start: "09:00", end: "15:00" },
+    { id: uid(), type: "work", start: "08:30", end: "14:00" },
   ];
   return { 0: [], 1: longDay(), 2: longDay(), 3: longDay(), 4: longDay(), 5: friday(), 6: [] };
 };
