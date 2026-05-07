@@ -454,6 +454,7 @@ export const useAppStore = create<AppState>()(
           vacationDaysTotal: u.vacationDaysTotal ?? 22,
           schedule: (u as { schedule?: WeeklySchedule }).schedule ?? emptySchedule(),
           avatar: (u as { avatar?: string }).avatar,
+          avatarColor: (u as { avatarColor?: string }).avatarColor,
           consent: (u as { consent?: boolean }).consent ?? false,
         }));
         return {
