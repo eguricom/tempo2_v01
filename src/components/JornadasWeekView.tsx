@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { addWeeks, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from "date-fns";
+import { eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,12 +13,14 @@ import {
   isVacation,
   isFreeDay,
   type Shift,
+  type ShiftSegment,
 } from "@/lib/store";
 import { magicBalanceWeek, rebalanceShifts } from "@/lib/balance";
 import { SegmentChips } from "@/components/SegmentChips";
 import { toast } from "sonner";
 
 const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const PAGE = 6;
 
 function weekKey(d: Date) {
   return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -26,16 +28,17 @@ function weekKey(d: Date) {
 
 export function JornadasWeekView({ userId }: { userId?: string }) {
   const { shifts, users, holidays, vacations, freeDays, devMode, updateShift } = useAppStore();
-  const [jitter, setJitter] = useState(15); // minutes
+  const [jitter, setJitter] = useState(15);
   const [editingTotal, setEditingTotal] = useState<string | null>(null);
   const [totalInput, setTotalInput] = useState("");
+  const [pageCount, setPageCount] = useState(PAGE);
 
   const visible = useMemo(
     () => (userId ? shifts.filter((s) => s.userId === userId) : shifts),
     [shifts, userId],
   );
 
-  const weeks = useMemo(() => {
+  const allWeeks = useMemo(() => {
     if (visible.length === 0) return [] as { key: string; start: Date; end: Date; days: Date[]; items: Shift[] }[];
     const byWeek = new Map<string, Shift[]>();
     for (const s of visible) {
@@ -52,6 +55,8 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
       });
   }, [visible]);
 
+  const weeks = allWeeks.slice(0, pageCount);
+
   const runMagic = (weekShifts: Shift[]) => {
     if (!userId) {
       toast.error("Selecciona un usuario para usar el cuadre mágico");
@@ -59,7 +64,7 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
     }
     const user = users.find((u) => u.id === userId);
     if (!user) return;
-    const result = magicBalanceWeek(user, weekShifts, { jitterMin: jitter, totalJitterMin: jitter });
+    const result = magicBalanceWeek(user, weekShifts, { jitterMin: jitter, totalJitterMin: Math.min(jitter * 2, 30) });
     if (result.changed.length === 0) {
       toast.info("No hay franjas que ajustar");
       return;
@@ -87,7 +92,18 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
     toast.success(`Semana reescalada a ${formatDuration(mins)}`);
   };
 
-  if (weeks.length === 0) {
+  const editSegment = (shift: Shift, segId: string, patch: Partial<ShiftSegment>) => {
+    if (!shift.segments) return;
+    const segs = shift.segments.map((s) => (s.id === segId ? { ...s, ...patch } : s));
+    const ordered = [...segs].sort((a, b) => a.start.localeCompare(b.start));
+    updateShift(shift.id, {
+      segments: ordered,
+      start: new Date(`${shift.date}T${ordered[0].start}:00`).toISOString(),
+      end: new Date(`${shift.date}T${ordered[ordered.length - 1].end}:00`).toISOString(),
+    });
+  };
+
+  if (allWeeks.length === 0) {
     return (
       <Card className="p-12 text-center text-sm text-muted-foreground">
         No hay jornadas para mostrar. Selecciona un usuario o registra una jornada.
@@ -149,7 +165,7 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
                     disabled={!devMode}
                     onClick={() => {
                       setEditingTotal(w.key);
-                      setTotalInput(formatDuration(total).replace("h ", ":").replace("m", "").replace(" ", ""));
+                      setTotalInput(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`);
                     }}
                     className="rounded bg-background px-2.5 py-1 text-sm font-semibold tabular-nums shadow-sm hover:bg-muted disabled:opacity-60"
                     title={devMode ? "Editar total semanal" : "Modo dev requerido"}
@@ -164,7 +180,7 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-7 divide-x">
+            <div className="grid grid-cols-2 divide-x sm:grid-cols-4 lg:grid-cols-7">
               {w.days.map((d, idx) => {
                 const date = format(d, "yyyy-MM-dd");
                 const items = byDay.get(date) ?? [];
@@ -211,7 +227,12 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
                     {items.length > 0 && (
                       <div className="space-y-1">
                         {items.map((s) => (
-                          <SegmentChips key={s.id} segments={s.segments} size="xs" />
+                          <SegmentChips
+                            key={s.id}
+                            segments={s.segments}
+                            size="xs"
+                            onSegmentChange={devMode ? (id, patch) => editSegment(s, id, patch) : undefined}
+                          />
                         ))}
                       </div>
                     )}
@@ -222,11 +243,14 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
           </Card>
         );
       })}
+
+      {pageCount < allWeeks.length && (
+        <div className="flex justify-center pt-2 no-print">
+          <Button variant="outline" size="sm" onClick={() => setPageCount((c) => c + PAGE)}>
+            Cargar {Math.min(PAGE, allWeeks.length - pageCount)} semanas más
+          </Button>
+        </div>
+      )}
     </div>
   );
-}
-
-// Helper for display only
-export function _placeholder(_: Date) {
-  return addWeeks(new Date(), 0);
 }
