@@ -466,6 +466,7 @@ export const useAppStore = create<AppState>()(
           auditLog: (p as { auditLog?: AuditEntry[] }).auditLog ?? [],
           sessionUserId: (p as { sessionUserId?: string | null }).sessionUserId ?? null,
           devMode: (p as { devMode?: boolean }).devMode ?? false,
+          devModeLastActivity: 0,
           devPassword: (p as { devPassword?: string }).devPassword ?? "molo",
         };
       },
