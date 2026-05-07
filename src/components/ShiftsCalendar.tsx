@@ -165,20 +165,27 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                 {items.slice(0, 3).map((s) => {
                   const u = users.find((x) => x.id === s.userId);
                   const inProgress = s.status === "in_progress";
+                  const color = u?.avatarColor;
                   return (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => tryEdit(s)}
-                      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition-colors ${
+                      style={!userId && color ? { backgroundColor: color + "22", color: color } : undefined}
+                      className={`flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition-colors ${
                         inProgress
                           ? "bg-warning/20 text-warning-foreground hover:bg-warning/30"
-                          : "bg-primary/10 text-primary hover:bg-primary/20"
+                          : !userId && color ? "" : "bg-primary/10 text-primary hover:bg-primary/20"
                       }`}
                       title={`${u?.name ?? ""} · ${format(parseISO(s.start), "HH:mm")}${s.end ? `–${format(parseISO(s.end), "HH:mm")}` : ""}`}
                     >
+                      {!userId && u && (
+                        <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white" style={{ backgroundColor: color ?? "#64748b" }}>
+                          {u.name.charAt(0)}
+                        </span>
+                      )}
                       <span className="tabular-nums">{format(parseISO(s.start), "HH:mm")}</span>
-                      {!userId && u && <span className="ml-1 opacity-70">· {u.name.split(" ")[0]}</span>}
+                      {!userId && u && <span className="opacity-70">· {u.name.split(" ")[0]}</span>}
                     </button>
                   );
                 })}
