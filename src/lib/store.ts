@@ -253,6 +253,7 @@ export const useAppStore = create<AppState>()(
       sessionUserId: null,
       devMode: false,
       devPassword: "molo",
+      devModeLastActivity: 0,
 
       users: seedUsers,
       shifts: [],
