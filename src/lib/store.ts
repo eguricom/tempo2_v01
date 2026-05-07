@@ -124,6 +124,7 @@ interface AppState {
   sessionUserId: string | null;
   devMode: boolean;
   devPassword: string;
+  devModeLastActivity: number; // ms epoch
 
   users: User[];
   shifts: Shift[];
@@ -139,6 +140,8 @@ interface AppState {
   login: (name: string, lastName: string, nif: string) => User | null;
   logout: () => void;
   toggleDevMode: (password: string) => boolean;
+  pingDevActivity: () => void;
+  checkDevTimeout: () => void;
 
   addUser: (u: Omit<User, "id">) => void;
   updateUser: (id: string, u: Partial<User>) => void;
