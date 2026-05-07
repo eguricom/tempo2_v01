@@ -15,8 +15,8 @@ function rows(shifts: Shift[], users: User[]) {
       Fin: s.end ? format(parseISO(s.end), "HH:mm") : "—",
       Trabajado: formatDuration(shiftMinutes(s)),
       Descanso: formatDuration(breakMinutes(s)),
+      Modalidad: s.workMode ?? "presencial",
       Estado: s.status === "finished" ? "Finalizada" : "En curso",
-      Observaciones: s.notes ?? "",
     };
   });
 }

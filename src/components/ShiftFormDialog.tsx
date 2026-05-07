@@ -3,7 +3,6 @@ import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   DialogContent,
   DialogDescription,
@@ -34,7 +33,7 @@ function defaultSegments(initial?: Shift): ShiftSegment[] {
       ),
     ];
   }
-  return [makeSegment("work", "09:00", "13:00"), makeSegment("break", "13:00", "14:00"), makeSegment("work", "14:00", "18:00")];
+  return [makeSegment("work", "09:00", "13:00"), makeSegment("break", "13:00", "14:00"), makeSegment("work", "14:00", "17:00")];
 }
 
 export function ShiftFormDialog({
@@ -58,7 +57,6 @@ export function ShiftFormDialog({
     initial ? initial.start.slice(0, 10) : defaultDate ?? new Date().toISOString().slice(0, 10),
   );
   const [segments, setSegments] = useState<ShiftSegment[]>(defaultSegments(initial));
-  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [workMode, setWorkMode] = useState<WorkMode>(initial?.workMode ?? "presencial");
 
   const submit = () => {
@@ -73,7 +71,7 @@ export function ShiftFormDialog({
     const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
     const start = new Date(`${date}T${ordered[0].start}:00`).toISOString();
     const end = new Date(`${date}T${ordered[ordered.length - 1].end}:00`).toISOString();
-    onSave({ userId, date, start, end, notes, status: "finished", segments: ordered, workMode });
+    onSave({ userId, date, start, end, status: "finished", segments: ordered, workMode });
     onClose();
   };
 
@@ -114,10 +112,6 @@ export function ShiftFormDialog({
           </Select>
         </div>
 
-        <div className="grid gap-2">
-          <Label>Observaciones</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" />
-        </div>
         {!canEditShiftDate(date, devMode) && (
           <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
             Sin modo desarrollador solo se pueden añadir/editar jornadas de los últimos 7 días.

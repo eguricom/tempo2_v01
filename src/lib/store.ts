@@ -28,6 +28,7 @@ export interface User {
   vacationDaysTotal: number;
   schedule: WeeklySchedule;
   avatar?: string; // base64 data URL
+  avatarColor?: string; // hex/oklch for differentiating users
   consent?: boolean;
 }
 
@@ -123,6 +124,7 @@ interface AppState {
   sessionUserId: string | null;
   devMode: boolean;
   devPassword: string;
+  devModeLastActivity: number; // ms epoch
 
   users: User[];
   shifts: Shift[];
@@ -138,6 +140,8 @@ interface AppState {
   login: (name: string, lastName: string, nif: string) => User | null;
   logout: () => void;
   toggleDevMode: (password: string) => boolean;
+  pingDevActivity: () => void;
+  checkDevTimeout: () => void;
 
   addUser: (u: Omit<User, "id">) => void;
   updateUser: (id: string, u: Partial<User>) => void;
@@ -180,10 +184,10 @@ const standardSchedule = (): WeeklySchedule => {
   const longDay = (): ShiftSegment[] => [
     { id: uid(), type: "work", start: "09:00", end: "13:00" },
     { id: uid(), type: "break", start: "13:00", end: "14:00" },
-    { id: uid(), type: "work", start: "14:00", end: "17:30" },
+    { id: uid(), type: "work", start: "14:00", end: "18:00" },
   ];
   const friday = (): ShiftSegment[] => [
-    { id: uid(), type: "work", start: "09:00", end: "15:00" },
+    { id: uid(), type: "work", start: "08:30", end: "14:00" },
   ];
   return { 0: [], 1: longDay(), 2: longDay(), 3: longDay(), 4: longDay(), 5: friday(), 6: [] };
 };
@@ -191,9 +195,9 @@ const standardSchedule = (): WeeklySchedule => {
 const emptyAddress = (): Address => ({ street: "", floor: "", postalCode: "", city: "" });
 
 const seedUsers: User[] = [
-  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", companyEmail: "ana@empresa.com", phone: "", address: emptyAddress(), role: "admin", department: "Dirección", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), consent: true },
-  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", companyEmail: "carlos@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Ventas", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), consent: true },
-  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", companyEmail: "laura@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule(), consent: true },
+  { id: "u1", name: "Ana", lastName: "García", nif: "00000001A", email: "ana@empresa.com", companyEmail: "ana@empresa.com", phone: "", address: emptyAddress(), role: "admin", department: "Dirección", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), avatarColor: "#6366f1", consent: true },
+  { id: "u2", name: "Carlos", lastName: "Ruiz", nif: "00000002B", email: "carlos@empresa.com", companyEmail: "carlos@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Ventas", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), avatarColor: "#10b981", consent: true },
+  { id: "u3", name: "Laura", lastName: "Méndez", nif: "00000003C", email: "laura@empresa.com", companyEmail: "laura@empresa.com", phone: "", address: emptyAddress(), role: "employee", department: "Administración", weeklyHours: 35, vacationDaysTotal: 22, schedule: standardSchedule(), avatarColor: "#f59e0b", consent: true },
 ];
 
 const seedDepartments: Department[] = [
@@ -249,6 +253,7 @@ export const useAppStore = create<AppState>()(
       sessionUserId: null,
       devMode: false,
       devPassword: "molo",
+      devModeLastActivity: 0,
 
       users: seedUsers,
       shifts: [],
@@ -287,9 +292,20 @@ export const useAppStore = create<AppState>()(
       },
       toggleDevMode: (password) => {
         if (password !== get().devPassword) return false;
-        set((s) => ({ devMode: !s.devMode }));
+        set((s) => ({ devMode: !s.devMode, devModeLastActivity: !s.devMode ? Date.now() : 0 }));
         get().logAudit("dev_mode_toggle", `Modo desarrollador → ${get().devMode ? "ON" : "OFF"}`);
         return true;
+      },
+      pingDevActivity: () => {
+        if (get().devMode) set({ devModeLastActivity: Date.now() });
+      },
+      checkDevTimeout: () => {
+        const s = get();
+        if (!s.devMode) return;
+        if (Date.now() - s.devModeLastActivity > 15 * 60 * 1000) {
+          set({ devMode: false, devModeLastActivity: 0 });
+          s.logAudit("dev_mode_timeout", "Auto-desactivado por inactividad (15 min)");
+        }
       },
 
       logAudit: (action, details, userId) =>
@@ -384,7 +400,6 @@ export const useAppStore = create<AppState>()(
             end: new Date(`${date}T${endTime}:00`).toISOString(),
             status: "finished",
             segments: segs,
-            notes: "Autocompletado desde horario",
             actorId: state.sessionUserId ?? userId,
           });
         }
@@ -419,8 +434,8 @@ export const useAppStore = create<AppState>()(
       updateConfig: (c) => set((s) => ({ config: { ...s.config, ...c } })),
     }),
     {
-      name: "tempo-store-v4",
-      version: 4,
+      name: "tempo-store-v5",
+      version: 5,
       migrate: (persisted: unknown) => {
         const p = (persisted ?? {}) as Partial<AppState> & Record<string, unknown>;
         const users = Array.isArray(p.users) ? (p.users as Partial<User>[]) : seedUsers;
@@ -439,6 +454,7 @@ export const useAppStore = create<AppState>()(
           vacationDaysTotal: u.vacationDaysTotal ?? 22,
           schedule: (u as { schedule?: WeeklySchedule }).schedule ?? emptySchedule(),
           avatar: (u as { avatar?: string }).avatar,
+          avatarColor: (u as { avatarColor?: string }).avatarColor,
           consent: (u as { consent?: boolean }).consent ?? false,
         }));
         return {
@@ -450,6 +466,7 @@ export const useAppStore = create<AppState>()(
           auditLog: (p as { auditLog?: AuditEntry[] }).auditLog ?? [],
           sessionUserId: (p as { sessionUserId?: string | null }).sessionUserId ?? null,
           devMode: (p as { devMode?: boolean }).devMode ?? false,
+          devModeLastActivity: 0,
           devPassword: (p as { devPassword?: string }).devPassword ?? "molo",
         };
       },
