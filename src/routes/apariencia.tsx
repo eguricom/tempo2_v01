@@ -161,7 +161,7 @@ function AparienciaPage() {
   return (
     <>
       <AppHeader title="Aspecto" />
-      <main className="flex-1 space-y-4 sm:space-y-6 py-3 sm:py-6">
+      <main className="flex-1 space-y-4 sm:space-y-6 pt-3 px-3 pb-9 sm:pt-6 sm:px-6 sm:pb-18">
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">

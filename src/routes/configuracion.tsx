@@ -129,7 +129,7 @@ function ConfigPage() {
   return (
     <>
       <AppHeader title="Configuración" />
-      <main className="flex-1 space-y-4 sm:space-y-6 py-3 sm:py-6">
+      <main className="flex-1 space-y-4 sm:space-y-6 pt-3 px-3 pb-9 sm:pt-6 sm:px-6 sm:pb-18">
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-4 sm:space-y-6 lg:col-span-2">
 

@@ -53,7 +53,7 @@ function AusenciasPage() {
   return (
     <>
       <AppHeader title="Ausencias" />
-      <main className="flex-1 space-y-4 py-4 sm:py-6">
+      <main className="flex-1 space-y-4 pt-4 px-4 pb-12 sm:pt-6 sm:px-6 sm:pb-18">
         <div className="flex justify-between">
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
