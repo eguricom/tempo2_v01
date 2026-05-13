@@ -14,6 +14,7 @@ import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as JornadasRouteImport } from './routes/jornadas'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as CopiasSeguridadRouteImport } from './routes/copias-seguridad'
+import { Route as AparienciaRouteImport } from './routes/apariencia'
 import { Route as AusenciasRouteImport } from './routes/ausencias'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -47,6 +48,11 @@ const CopiasSeguridadRoute = CopiasSeguridadRouteImport.update({
   path: '/copias-seguridad',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AparienciaRoute = AparienciaRouteImport.update({
+  id: '/apariencia',
+  path: '/apariencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,6 +61,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/apariencia': typeof AparienciaRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
   '/copias-seguridad': typeof CopiasSeguridadRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/apariencia': typeof AparienciaRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
   '/copias-seguridad': typeof CopiasSeguridadRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/apariencia': typeof AparienciaRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
   '/copias-seguridad': typeof CopiasSeguridadRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/apariencia'
     | '/ausencias'
     | '/configuracion'
     | '/copias-seguridad'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/apariencia'
     | '/ausencias'
     | '/configuracion'
     | '/copias-seguridad'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/apariencia'
     | '/ausencias'
     | '/configuracion'
     | '/copias-seguridad'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AparienciaRoute: typeof AparienciaRoute
   AusenciasRoute: typeof AusenciasRoute
   ConfiguracionRoute: typeof ConfiguracionRoute
   CopiasSeguridadRoute: typeof CopiasSeguridadRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/vacaciones'
       fullPath: '/vacaciones'
       preLoaderRoute: typeof VacacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apariencia': {
+      id: '/apariencia'
+      path: '/apariencia'
+      fullPath: '/apariencia'
+      preLoaderRoute: typeof AparienciaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/usuarios': {
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AparienciaRoute: AparienciaRoute,
   AusenciasRoute: AusenciasRoute,
   ConfiguracionRoute: ConfiguracionRoute,
   CopiasSeguridadRoute: CopiasSeguridadRoute,
