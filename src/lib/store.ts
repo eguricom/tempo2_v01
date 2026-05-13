@@ -121,12 +121,13 @@ export interface CompanyConfig {
 }
 
 export interface AppearanceSettings {
-  primaryColor: string;
   sidebarColor: string;
   backgroundColor: string;
   cardColor: string;
-  accentColor: string;
-  boxColor: string;
+  sidebarOnBg: string;
+  sidebarOverBg: string;
+  primaryBtnBg: string;
+  secondaryBtnHover: string;
 }
 
 export interface AuditEntry {

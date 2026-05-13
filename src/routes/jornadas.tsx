@@ -60,9 +60,10 @@ const LIST_PAGE = 30;
 function JornadasPage() {
   const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
   const currentUser = users.find((u) => u.id === currentUserId);
+  const canViewAll = devMode || currentUser?.role === "admin";
   const canBulkAdd = currentUser?.permissions?.bulk_add ?? true;
   const [search, setSearch] = useState("");
-  const [userFilter, setUserFilter] = useState<string>(currentUserId);
+  const [userFilter, setUserFilter] = useState<string>(canViewAll ? currentUserId : currentUserId);
   const [editing, setEditing] = useState<Shift | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [openBulk, setOpenBulk] = useState(false);
@@ -193,26 +194,28 @@ function JornadasPage() {
             </DropdownMenu>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar empleado..."
-                className="pl-8 w-full sm:w-[200px]"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+          {canViewAll && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar empleado..."
+                  className="pl-8 w-full sm:w-[200px]"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Select value={userFilter} onValueChange={setUserFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los usuarios</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name} {u.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={userFilter} onValueChange={setUserFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los usuarios</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.name} {u.lastName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          )}
         </div>
 
         <Tabs defaultValue="week">

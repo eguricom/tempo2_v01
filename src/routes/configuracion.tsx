@@ -32,7 +32,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useAppStore } from "@/lib/store";
 
-import { Plus, Trash2, Wand2, Clock, Upload, Timer } from "lucide-react";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
@@ -307,15 +307,6 @@ function ConfigPage() {
           )}
           <TabsContent value="other">
             <div className="space-y-4">
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-sm sm:text-base">Logotipo de empresa</CardTitle>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Este logo sustituye al icono de la pantalla de inicio de sesión.</p>
-                </CardHeader>
-                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                  <CompanyLogoUploader />
-                </CardContent>
-              </Card>
               {devMode && (
                 <Card>
                   <CardHeader className="p-4 sm:p-6">
@@ -426,47 +417,6 @@ function AuditLogViewer() {
         </TableBody>
       </Table>
     </ScrollArea>
-  );
-}
-
-function CompanyLogoUploader() {
-  const { companyLogo, updateCompanyLogo } = useAppStore();
-
-  const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 1024 * 1024) { toast.error("Máx 1MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => updateCompanyLogo(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-      <div className="relative flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center shrink-0">
-        <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center overflow-hidden rounded-full border-2 border-blue-500 bg-primary text-primary-foreground">
-          {companyLogo ? (
-            <img src={companyLogo} alt="Logo empresa" className="h-full w-full object-cover" />
-          ) : (
-            <Clock className="h-6 w-6 sm:h-8 sm:w-8" />
-          )}
-        </div>
-        <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full border-2 border-blue-500 bg-primary text-primary-foreground shadow-sm">
-          <Timer className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-        </div>
-      </div>
-      <div className="flex-1 min-w-[120px]">
-        <p className="text-xs sm:text-sm font-medium">Logo actual</p>
-        <p className="text-xs text-muted-foreground">JPG/PNG hasta 1MB. Se mostrará en la pantalla de inicio de sesión.</p>
-      </div>
-      <label className="inline-flex cursor-pointer items-center gap-1 sm:gap-2 rounded-md border bg-background px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm hover:bg-muted">
-        <Upload className="h-3 w-3 sm:h-4 sm:w-4" /> Subir
-        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleLogo} />
-      </label>
-      {companyLogo && (
-        <Button variant="ghost" size="sm" onClick={() => updateCompanyLogo("")} className="h-7 sm:h-8 text-xs sm:text-sm">Quitar</Button>
-      )}
-    </div>
   );
 }
 
