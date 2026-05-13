@@ -68,7 +68,7 @@ function VacacionesPage() {
   return (
     <>
       <AppHeader title="Vacaciones, festivos y días libres" />
-      <main className="flex-1 space-y-4 p-4 sm:p-6">
+      <main className="flex-1 space-y-4 py-4 sm:py-6">
         <Tabs defaultValue="holidays">
           <TabsList>
             <TabsTrigger value="holidays">Festivos</TabsTrigger>

@@ -27,7 +27,7 @@ export function AppHeader({ title }: { title: string }) {
   const currentUser = users.find((u) => u.id === currentUserId) ?? null;
 
   return (
-    <header className="sticky top-0 z-10 flex h-[77px] items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
+    <header className="sticky top-0 z-10 flex h-[77px] items-center justify-between border-b bg-background/80 px-4 sm:px-6 backdrop-blur">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="mr-[15px]" />
         <div className="relative flex h-9 w-9 items-center justify-center shrink-0">

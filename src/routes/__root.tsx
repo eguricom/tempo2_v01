@@ -48,7 +48,7 @@ function RootComponent() {
       <UnsavedChangesGuard />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
-        <div className="flex flex-1 flex-col">
+        <div className="contenido-principal flex flex-1 flex-col">
           <Outlet />
         </div>
       </div>

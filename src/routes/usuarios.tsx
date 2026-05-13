@@ -65,7 +65,7 @@ function UsuariosPage() {
   return (
     <>
       <AppHeader title="Usuarios" />
-      <main className="flex-1 space-y-4 p-4 sm:p-6">
+      <main className="flex-1 space-y-4 py-4 sm:py-6">
         <div className="flex justify-between">
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
