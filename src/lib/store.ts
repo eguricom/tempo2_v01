@@ -214,11 +214,58 @@ const emptySchedule = (): WeeklySchedule => ({ 0: [], 1: [], 2: [], 3: [], 4: []
 
 const emptyAddress = (): Address => ({ street: "", floor: "", postalCode: "", city: "" });
 
-const seedUsers: User[] = [];
+const seedUsers: User[] = [
+  {
+    id: "seed-julio",
+    name: "Julio",
+    lastName: "González",
+    secondLastName: "",
+    nif: "12345678Z",
+    email: "julio@molotov.es",
+    companyEmail: "julio@molotov.es",
+    phone: "",
+    address: { street: "", floor: "", postalCode: "", city: "" },
+    role: "admin",
+    department: "",
+    weeklyHours: 37.5,
+    vacationDaysTotal: 22,
+    schedule: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
+    consent: true,
+    passwordHash: "00b72afbae521af2e19886f1ebb09aa1b6280e68043b57914629b346be54db64",
+    permissions: {
+      bulk_add: true, edit_shifts: true, export: true,
+      manage_users: true, manage_absences: true, manage_config: true, magic_balance: true,
+    },
+  },
+  {
+    id: "seed-edu",
+    name: "Edu",
+    lastName: "Gutierrez",
+    secondLastName: "",
+    nif: "87654321X",
+    email: "edu@molotov.es",
+    companyEmail: "edu@molotov.es",
+    phone: "",
+    address: { street: "", floor: "", postalCode: "", city: "" },
+    role: "employee",
+    department: "Mensajería",
+    weeklyHours: 37.5,
+    vacationDaysTotal: 22,
+    schedule: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
+    consent: true,
+    passwordHash: "00b72afbae521af2e19886f1ebb09aa1b6280e68043b57914629b346be54db64",
+    permissions: {
+      bulk_add: false, edit_shifts: false, export: false,
+      manage_users: false, manage_absences: false, manage_config: false, magic_balance: false,
+    },
+  },
+];
 
 const seedHolidays: Holiday[] = [];
 
-const seedDepartments: Department[] = [];
+const seedDepartments: Department[] = [
+  { id: "dep-mensajeria", name: "Mensajería", color: "#3b82f6" },
+];
 
 export function normalize(s: string) {
   return s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -330,7 +377,12 @@ function loadInitialState(): Partial<AppState> {
       }
     }
   } catch {}
-  return {};
+  // First visit: seed users para poder probar la app
+  return {
+    users: seedUsers,
+    departments: seedDepartments,
+    holidays: seedHolidays,
+  };
 }
 
 const initialState = loadInitialState();
@@ -806,7 +858,12 @@ export async function loadFromServer(options?: { preferServer?: boolean }) {
   } catch {}
 
   // 3. Seeds como último recurso
-  useAppStore.setState({ loaded: true });
+  const current = useAppStore.getState();
+  if (!current.users || current.users.length === 0) {
+    useAppStore.setState({ users: seedUsers, departments: seedDepartments, holidays: seedHolidays, loaded: true });
+  } else {
+    useAppStore.setState({ loaded: true });
+  }
   _hydrating = false;
 }
 
