@@ -30,7 +30,7 @@ export function DevModeToggle() {
     }
     setPwd("");
     setOpen(false);
-    toast.success(devMode ? "Modo desarrollador desactivado" : "Modo desarrollador activado");
+    toast.success(devMode ? "Modo administrador desactivado" : "Modo administrador activado");
   };
 
   return (
@@ -39,17 +39,17 @@ export function DevModeToggle() {
         type="button"
         onClick={() => setOpen(true)}
         className="flex items-center gap-2 rounded-md border bg-background px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
-        title="Modo desarrollador"
+        title="Modo administrador"
       >
         <Wrench className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Modo dev</span>
+        <span className="hidden sm:inline">Admin</span>
         <Switch checked={devMode} className="pointer-events-none scale-75" />
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{devMode ? "Desactivar" : "Activar"} modo desarrollador</DialogTitle>
+            <DialogTitle>{devMode ? "Desactivar" : "Activar"} modo administrador</DialogTitle>
             <DialogDescription>
               Introduce la contraseña para {devMode ? "desactivar" : "activar"} la edición manual de fichajes.
             </DialogDescription>

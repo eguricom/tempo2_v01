@@ -37,13 +37,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { useAppStore, shiftMinutes, formatDuration, canEditShiftDate, type Shift, type ShiftSegment } from "@/lib/store";
+import { useAppStore, shiftMinutes, formatDuration, canEditShiftDate, stateToJSON, apiUrl, forceSave, type Shift, type ShiftSegment } from "@/lib/store";
 import { magicBalanceWeek } from "@/lib/balance";
 import { startOfWeek, format as fmt, parseISO } from "date-fns";
 import { Plus, Trash2, Pencil, Layers, Search, Printer, Download, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { exportShiftsExcel, exportShiftsPDF } from "@/lib/export";
+import { exportShiftsExcel, exportShiftsPDF, exportShiftsCSV } from "@/lib/export";
 
 export const Route = createFileRoute("/jornadas")({
   head: () => ({
@@ -59,8 +59,10 @@ const LIST_PAGE = 30;
 
 function JornadasPage() {
   const { shifts, users, addShift, addShiftsBulk, updateShift, deleteShift, devMode, currentUserId } = useAppStore();
+  const currentUser = users.find((u) => u.id === currentUserId);
+  const canBulkAdd = currentUser?.permissions?.bulk_add ?? true;
   const [search, setSearch] = useState("");
-  const [userFilter, setUserFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>(currentUserId);
   const [editing, setEditing] = useState<Shift | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [openBulk, setOpenBulk] = useState(false);
@@ -125,6 +127,7 @@ function JornadasPage() {
     const weekShifts = shifts.filter((x) => x.userId === sh.userId && fmt(startOfWeek(parseISO(x.start), { weekStartsOn: 1 }), "yyyy-MM-dd") === wkKey);
     const result = magicBalanceWeek(user, weekShifts, { jitterMin: magicJitter, totalJitterMin: 30 });
     result.changed.forEach((c) => updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" }));
+    forceSave();
     toast.success(`Semana cuadrada: ${(result.totalAfter / 60).toFixed(2)}h`);
   };
 
@@ -146,7 +149,7 @@ function JornadasPage() {
               />
             </Dialog>
 
-            {devMode && (
+            {canBulkAdd && (
               <Dialog open={openBulk} onOpenChange={setOpenBulk}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -154,6 +157,7 @@ function JornadasPage() {
                   </Button>
                 </DialogTrigger>
                 <BulkShiftDialog
+                  devMode={devMode}
                   onClose={() => setOpenBulk(false)}
                   onSave={(arr) => { addShiftsBulk(arr); toast.success(`${arr.length} jornadas añadidas`); }}
                 />
@@ -181,6 +185,9 @@ function JornadasPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => exportShiftsPDF(exportData(), users)}>
                   <FileText className="mr-2 h-4 w-4" /> Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportShiftsCSV(exportData(), users)}>
+                  <Download className="mr-2 h-4 w-4" /> Exportar CSV
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -243,17 +250,17 @@ function JornadasPage() {
                 <TableHeader>
                   <TableRow>
                     {devMode && (
-                      <TableHead className="w-10">
+                      <TableHead className="hidden sm:table-cell w-10">
                         <Checkbox
                           checked={filtered.length > 0 && selected.size === filtered.length}
                           onCheckedChange={toggleAll}
                         />
                       </TableHead>
                     )}
-                    <TableHead>Usuario</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead className="hidden sm:table-cell">Usuario</TableHead>
+                    <TableHead className="hidden sm:table-cell">Estado</TableHead>
                     <TableHead>Fecha</TableHead>
-                    <TableHead>Franjas</TableHead>
+                    <TableHead className="hidden sm:table-cell">Franjas</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -261,7 +268,7 @@ function JornadasPage() {
                 <TableBody>
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={devMode ? 7 : 6} className="py-12 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={devMode ? 7 : 6} className="py-12 text-center text-sm text-muted-foreground whitespace-nowrap">
                         No hay jornadas registradas todavía.
                       </TableCell>
                     </TableRow>
@@ -272,14 +279,14 @@ function JornadasPage() {
                     return (
                       <TableRow key={s.id} data-state={selected.has(s.id) ? "selected" : undefined}>
                         {devMode && (
-                          <TableCell>
+                          <TableCell className="hidden sm:table-cell">
                             <Checkbox
                               checked={selected.has(s.id)}
                               onCheckedChange={() => toggleOne(s.id)}
                             />
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <div className="flex items-center gap-2">
                             <Avatar className="h-7 w-7" style={u?.avatarColor ? { backgroundColor: u.avatarColor } : undefined}>
                               {u?.avatar && <AvatarImage src={u.avatar} alt={u.name} />}
@@ -288,19 +295,20 @@ function JornadasPage() {
                             <span className="text-sm">{u?.name} {u?.lastName}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <Badge variant={s.status === "finished" ? "secondary" : "default"} className={s.status === "in_progress" ? "bg-warning text-warning-foreground" : ""}>
                             {s.status === "finished" ? "Finalizada" : "En curso"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm tabular-nums">{format(parseISO(s.start), "dd/MM/yyyy")}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(parseISO(s.start), "dd/MM/yyyy")}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <SegmentChips
                             segments={s.segments}
+                            avatarColor={u?.avatarColor}
                             onSegmentChange={editable ? (id, patch) => editSegment(s, id, patch) : undefined}
                           />
                         </TableCell>
-                        <TableCell className="text-sm font-medium tabular-nums">{formatDuration(shiftMinutes(s))}</TableCell>
+                        <TableCell className="text-sm font-medium tabular-nums whitespace-nowrap">{formatDuration(shiftMinutes(s))}</TableCell>
                         <TableCell className="text-right">
                           {devMode && (
                             <Button variant="ghost" size="icon" onClick={() => runMagicForShift(s)} title="Cuadre mágico de la semana">

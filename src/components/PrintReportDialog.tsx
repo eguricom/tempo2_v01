@@ -198,7 +198,7 @@ export function PrintReportDialog({ onClose }: { onClose: () => void }) {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="grid gap-2"><Label>Desde</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
           <div className="grid gap-2"><Label>Hasta</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         </div>

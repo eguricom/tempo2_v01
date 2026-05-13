@@ -1,10 +1,11 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { LoginOverlay } from "@/components/LoginOverlay";
-
-import appCss from "../styles.css?url";
+import { AppearanceProvider } from "@/components/AppearanceProvider";
+import { useEffect, useRef } from "react";
+import { useAppStore, loadFromServer, forceSave, stateToJSON, apiUrl } from "@/lib/store";
 
 function NotFoundComponent() {
   return (
@@ -29,51 +30,22 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tempo — Gestión de tiempo de empleados" },
-      { name: "description", content: "Aplicación para registrar jornadas, ausencias y gestionar el tiempo de tu equipo." },
-      { property: "og:title", content: "Tempo — Gestión de tiempo de empleados" },
-      { name: "twitter:title", content: "Tempo — Gestión de tiempo de empleados" },
-      { property: "og:description", content: "Aplicación para registrar jornadas, ausencias y gestionar el tiempo de tu equipo." },
-      { name: "twitter:description", content: "Aplicación para registrar jornadas, ausencias y gestionar el tiempo de tu equipo." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/723fb91e-f315-4436-b16d-90abcfefc455/id-preview-4a6ed2b0--52a8fec1-4d93-4f07-b74b-318b72b521bd.lovable.app-1777876834257.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/723fb91e-f315-4436-b16d-90abcfefc455/id-preview-4a6ed2b0--52a8fec1-4d93-4f07-b74b-318b72b521bd.lovable.app-1777876834257.png" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
 
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="es">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
+function DataLoader() {
+  useEffect(() => { loadFromServer(); }, []);
+  return null;
 }
 
 function RootComponent() {
   return (
     <SidebarProvider>
+      <DataLoader />
+      <AppearanceProvider />
       <DevModeWatcher />
+      <UnsavedChangesGuard />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
@@ -85,9 +57,6 @@ function RootComponent() {
     </SidebarProvider>
   );
 }
-
-import { useEffect } from "react";
-import { useAppStore } from "@/lib/store";
 
 function DevModeWatcher() {
   const { devMode, pingDevActivity, checkDevTimeout } = useAppStore();
@@ -103,5 +72,22 @@ function DevModeWatcher() {
       window.clearInterval(interval);
     };
   }, [devMode, pingDevActivity, checkDevTimeout]);
+  return null;
+}
+
+function UnsavedChangesGuard() {
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    const handler = (e: BeforeUnloadEvent) => {
+      const curr = JSON.stringify(stateToJSON());
+      try {
+        navigator.sendBeacon(apiUrl("/api/data.php"), new Blob([curr], { type: "application/json" }));
+      } catch {}
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
   return null;
 }

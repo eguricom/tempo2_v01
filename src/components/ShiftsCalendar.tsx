@@ -13,11 +13,12 @@ import {
   subMonths,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { useAppStore, shiftMinutes, formatDuration, isHoliday, isVacation, isFreeDay, canEditShiftDate, type Shift } from "@/lib/store";
+import { useAppStore, shiftMinutes, formatDuration, isHoliday, isVacation, isFreeDay, canEditShiftDate, stateToJSON, apiUrl, forceSave, type Shift } from "@/lib/store";
+import { magicBalanceWeek } from "@/lib/balance";
 import { ShiftFormDialog } from "@/components/ShiftFormDialog";
 import { toast } from "sonner";
 
@@ -34,7 +35,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
 
   const tryCreate = (date: string) => {
     if (!canEditShiftDate(date, devMode)) {
-      toast.error("Sin modo desarrollador solo se pueden añadir fichajes de los últimos 7 días");
+      toast.error("Solo el administrador puede añadir fichajes de más de 7 días");
       return;
     }
     setCreatingDate(date);
@@ -48,6 +49,43 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
     setEditing(s);
   };
 
+  const runMagicMonth = () => {
+    if (!userId) {
+      toast.error("Selecciona un usuario para usar el cuadre mágico");
+      return;
+    }
+    const user = users.find((u) => u.id === userId);
+    if (!user) return;
+    const monthStart = format(startOfMonth(cursor), "yyyy-MM-dd");
+    const monthEnd = format(endOfMonth(cursor), "yyyy-MM-dd");
+    const monthShifts = visible.filter((s) => s.date >= monthStart && s.date <= monthEnd && s.segments && s.segments.length);
+    const byWeek = new Map<string, Shift[]>();
+    for (const s of monthShifts) {
+      const wk = format(startOfWeek(parseISO(s.start), { weekStartsOn: 1 }), "yyyy-MM-dd");
+      if (!byWeek.has(wk)) byWeek.set(wk, []);
+      byWeek.get(wk)!.push(s);
+    }
+    let totalBefore = 0;
+    let totalAfter = 0;
+    let count = 0;
+    for (const weekShifts of byWeek.values()) {
+      const result = magicBalanceWeek(user, weekShifts, { jitterMin: 15 });
+      if (result.changed.length === 0) continue;
+      result.changed.forEach((c) =>
+        updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" }),
+      );
+      totalBefore += result.totalBefore;
+      totalAfter += result.totalAfter;
+      count++;
+    }
+    if (count === 0) {
+      toast.info("No hay franjas que ajustar este mes");
+    } else {
+      forceSave();
+      toast.success(`${count} semanas cuadradas: ${(totalAfter / 60).toFixed(2)}h (antes ${(totalBefore / 60).toFixed(2)}h)`);
+    }
+  };
+
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
     const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 });
@@ -57,7 +95,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
   const shiftsByDay = useMemo(() => {
     const map = new Map<string, Shift[]>();
     visible.forEach((s) => {
-      const key = s.start.slice(0, 10);
+      const key = s.date;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(s);
     });
@@ -83,12 +121,19 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
             Hoy
           </Button>
         </div>
-        <Button
-          size="sm"
-          onClick={() => tryCreate(format(new Date(), "yyyy-MM-dd"))}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Añadir fichaje
-        </Button>
+        <div className="flex items-center gap-2">
+          {devMode && userId && (
+            <Button size="sm" variant="outline" onClick={runMagicMonth}>
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Cuadre mágico
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={() => tryCreate(format(new Date(), "yyyy-MM-dd"))}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Añadir fichaje
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 border-b bg-muted/30 text-center text-xs font-medium text-muted-foreground">
@@ -119,7 +164,7 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                 <button
                   type="button"
                   onClick={() => tryCreate(key)}
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
                     isToday
                       ? "bg-primary text-primary-foreground"
                       : inMonth
@@ -138,10 +183,10 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                   <button
                     type="button"
                     onClick={() => tryCreate(key)}
-                    className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary opacity-0 transition-opacity hover:bg-primary hover:text-primary-foreground group-hover:flex group-hover:opacity-100"
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground md:opacity-0 md:group-hover:opacity-100"
                     aria-label="Añadir fichaje"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
@@ -164,27 +209,65 @@ export function ShiftsCalendar({ userId }: { userId?: string }) {
                 )}
                 {items.slice(0, 3).map((s) => {
                   const u = users.find((x) => x.id === s.userId);
-                  const inProgress = s.status === "in_progress";
                   const color = u?.avatarColor;
-                  return (
+                  const segments = s.segments && s.segments.length > 0 ? s.segments : null;
+                  return segments ? (
+                    <div
+                      key={s.id}
+                      className="space-y-0.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => tryEdit(s)}
+                        style={!userId && color ? { backgroundColor: color + "22", color: color } : undefined}
+                        className={`flex w-full items-center gap-1 rounded-t px-1.5 py-0.5 text-left text-[11px] font-medium transition-colors ${
+                          s.status === "in_progress"
+                            ? "bg-warning/20 text-warning-foreground hover:bg-warning/30"
+                            : !userId && color ? "" : "bg-primary/10 text-primary hover:bg-primary/20"
+                        }`}
+                        title={u ? u.name : ""}
+                      >
+                        {!userId && u && (
+                          <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white" style={{ backgroundColor: color ?? "#64748b" }}>
+                            {u.name.charAt(0)}
+                          </span>
+                        )}
+                        {!userId && u && <span className="opacity-70">{u.name.split(" ")[0]}</span>}
+                      </button>
+                      {segments.map((seg) => (
+                        <span
+                          key={seg.id}
+                          className={`block truncate rounded px-1.5 py-0.5 text-[10px] tabular-nums ${
+                            seg.type === "break"
+                              ? "bg-muted/40 text-muted-foreground italic"
+                              : s.status === "in_progress"
+                              ? "bg-warning/20 text-warning-foreground"
+                              : "bg-primary/5 text-primary"
+                          }`}
+                        >
+                          {seg.start}–{seg.end}{seg.type === "break" ? " ☕" : ""}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => tryEdit(s)}
                       style={!userId && color ? { backgroundColor: color + "22", color: color } : undefined}
                       className={`flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition-colors ${
-                        inProgress
+                        s.status === "in_progress"
                           ? "bg-warning/20 text-warning-foreground hover:bg-warning/30"
                           : !userId && color ? "" : "bg-primary/10 text-primary hover:bg-primary/20"
                       }`}
-                      title={`${u?.name ?? ""} · ${format(parseISO(s.start), "HH:mm")}${s.end ? `–${format(parseISO(s.end), "HH:mm")}` : ""}`}
+                      title={u ? u.name : ""}
                     >
                       {!userId && u && (
                         <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white" style={{ backgroundColor: color ?? "#64748b" }}>
                           {u.name.charAt(0)}
                         </span>
                       )}
-                      <span className="tabular-nums">{format(parseISO(s.start), "HH:mm")}</span>
+                      <span className="tabular-nums">{format(parseISO(s.start), "HH:mm")}{s.end ? `–${format(parseISO(s.end), "HH:mm")}` : ""}</span>
                       {!userId && u && <span className="opacity-70">· {u.name.split(" ")[0]}</span>}
                     </button>
                   );

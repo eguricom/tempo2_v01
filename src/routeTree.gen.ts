@@ -13,6 +13,7 @@ import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as JornadasRouteImport } from './routes/jornadas'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
+import { Route as CopiasSeguridadRouteImport } from './routes/copias-seguridad'
 import { Route as AusenciasRouteImport } from './routes/ausencias'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -41,6 +42,11 @@ const AusenciasRoute = AusenciasRouteImport.update({
   path: '/ausencias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CopiasSeguridadRoute = CopiasSeguridadRouteImport.update({
+  id: '/copias-seguridad',
+  path: '/copias-seguridad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/copias-seguridad': typeof CopiasSeguridadRoute
   '/jornadas': typeof JornadasRoute
   '/usuarios': typeof UsuariosRoute
   '/vacaciones': typeof VacacionesRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/copias-seguridad': typeof CopiasSeguridadRoute
   '/jornadas': typeof JornadasRoute
   '/usuarios': typeof UsuariosRoute
   '/vacaciones': typeof VacacionesRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/copias-seguridad': typeof CopiasSeguridadRoute
   '/jornadas': typeof JornadasRoute
   '/usuarios': typeof UsuariosRoute
   '/vacaciones': typeof VacacionesRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ausencias'
     | '/configuracion'
+    | '/copias-seguridad'
     | '/jornadas'
     | '/usuarios'
     | '/vacaciones'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ausencias'
     | '/configuracion'
+    | '/copias-seguridad'
     | '/jornadas'
     | '/usuarios'
     | '/vacaciones'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ausencias'
     | '/configuracion'
+    | '/copias-seguridad'
     | '/jornadas'
     | '/usuarios'
     | '/vacaciones'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AusenciasRoute: typeof AusenciasRoute
   ConfiguracionRoute: typeof ConfiguracionRoute
+  CopiasSeguridadRoute: typeof CopiasSeguridadRoute
   JornadasRoute: typeof JornadasRoute
   UsuariosRoute: typeof UsuariosRoute
   VacacionesRoute: typeof VacacionesRoute
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/copias-seguridad': {
+      id: '/copias-seguridad'
+      path: '/copias-seguridad'
+      fullPath: '/copias-seguridad'
+      preLoaderRoute: typeof CopiasSeguridadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ausencias': {
       id: '/ausencias'
       path: '/ausencias'
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AusenciasRoute: AusenciasRoute,
   ConfiguracionRoute: ConfiguracionRoute,
+  CopiasSeguridadRoute: CopiasSeguridadRoute,
   JornadasRoute: JornadasRoute,
   UsuariosRoute: UsuariosRoute,
   VacacionesRoute: VacacionesRoute,
@@ -166,3 +187,11 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+
+import type { getRouter } from './router.tsx'
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

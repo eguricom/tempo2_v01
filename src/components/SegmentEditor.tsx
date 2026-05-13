@@ -51,9 +51,9 @@ export function SegmentEditor({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>Franjas horarias</Label>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>Franjas horarias</Label>
+          <div className="flex gap-1">
           <Button type="button" size="sm" variant="outline" onClick={() => add("work")}>
             <Briefcase className="mr-1.5 h-3.5 w-3.5" /> Trabajo
           </Button>
@@ -73,12 +73,12 @@ export function SegmentEditor({
         {segments.map((s) => (
           <div
             key={s.id}
-            className={`flex items-center gap-2 rounded-md border p-2 ${
+            className={`flex flex-wrap items-center gap-2 rounded-md border p-2 ${
               s.type === "work" ? "bg-primary/5" : "bg-warning/10"
             }`}
           >
             <Select value={s.type} onValueChange={(v) => update(s.id, { type: v as SegmentType })}>
-              <SelectTrigger className="w-[120px] h-8">
+              <SelectTrigger className="w-full sm:w-[120px] h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -88,14 +88,14 @@ export function SegmentEditor({
             </Select>
             <Input
               type="time"
-              className="h-8 w-28"
+              className="h-8 w-full sm:w-28 flex-1 sm:flex-none min-w-0"
               value={s.start}
               onChange={(e) => update(s.id, { start: e.target.value })}
             />
             <span className="text-xs text-muted-foreground">→</span>
             <Input
               type="time"
-              className="h-8 w-28"
+              className="h-8 w-full sm:w-28 flex-1 sm:flex-none min-w-0"
               value={s.end}
               onChange={(e) => update(s.id, { end: e.target.value })}
             />
@@ -103,7 +103,7 @@ export function SegmentEditor({
               type="button"
               variant="ghost"
               size="icon"
-              className="ml-auto h-8 w-8"
+              className="ml-auto h-8 w-8 shrink-0"
               onClick={() => remove(s.id)}
             >
               <Trash2 className="h-4 w-4 text-destructive" />

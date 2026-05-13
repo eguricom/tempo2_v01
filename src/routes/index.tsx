@@ -57,7 +57,7 @@ function HomePage() {
   return (
     <>
       <AppHeader title="Inicio" />
-      <main className="flex-1 space-y-6 p-6">
+      <main className="flex-1 space-y-6 p-4 sm:p-6">
         {/* Top welcome + clock */}
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>

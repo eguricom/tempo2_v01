@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Trash2 } from "lucide-react";
 import { useAppStore, canEditShiftDate, type Shift, type ShiftSegment, type WorkMode } from "@/lib/store";
 import { SegmentEditor, makeSegment } from "@/components/SegmentEditor";
@@ -58,10 +59,11 @@ export function ShiftFormDialog({
   );
   const [segments, setSegments] = useState<ShiftSegment[]>(defaultSegments(initial));
   const [workMode, setWorkMode] = useState<WorkMode>(initial?.workMode ?? "presencial");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
 
   const submit = () => {
     if (!canEditShiftDate(date, devMode)) {
-      toast.error("Sin modo desarrollador solo se pueden editar fichajes de los últimos 7 días");
+      toast.error("Solo el administrador puede editar fichajes de más de 7 días");
       return;
     }
     if (segments.length === 0) {
@@ -71,7 +73,7 @@ export function ShiftFormDialog({
     const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
     const start = new Date(`${date}T${ordered[0].start}:00`).toISOString();
     const end = new Date(`${date}T${ordered[ordered.length - 1].end}:00`).toISOString();
-    onSave({ userId, date, start, end, status: "finished", segments: ordered, workMode });
+    onSave({ userId, date, start, end, status: "finished", segments: ordered, workMode, notes: notes || undefined });
     onClose();
   };
 
@@ -112,13 +114,18 @@ export function ShiftFormDialog({
           </Select>
         </div>
 
+        <div className="grid gap-2">
+          <Label>Notas</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observaciones opcionales..." />
+        </div>
+
         {!canEditShiftDate(date, devMode) && (
           <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
-            Sin modo desarrollador solo se pueden añadir/editar jornadas de los últimos 7 días.
+            Solo el administrador puede añadir o editar jornadas de más de 7 días.
           </p>
         )}
       </div>
-      <DialogFooter className="flex-row justify-between sm:justify-between">
+      <DialogFooter className="flex-row flex-wrap justify-between sm:justify-between gap-2">
         <div>
           {onDelete && (
             <Button variant="ghost" onClick={onDelete} className="text-destructive hover:text-destructive">

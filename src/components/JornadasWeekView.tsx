@@ -12,6 +12,8 @@ import {
   isHoliday,
   isVacation,
   isFreeDay,
+  stateToJSON,
+  apiUrl,
   type Shift,
   type ShiftSegment,
 } from "@/lib/store";
@@ -32,6 +34,7 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
   const [editingTotal, setEditingTotal] = useState<string | null>(null);
   const [totalInput, setTotalInput] = useState("");
   const [pageCount, setPageCount] = useState(PAGE);
+  const user = useMemo(() => userId ? users.find((u) => u.id === userId) : undefined, [users, userId]);
 
   const visible = useMemo(
     () => (userId ? shifts.filter((s) => s.userId === userId) : shifts),
@@ -57,6 +60,20 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
 
   const weeks = allWeeks.slice(0, pageCount);
 
+  const monthGroups = useMemo(() => {
+    const groups: { label: string; weeks: typeof weeks }[] = [];
+    for (const w of weeks) {
+      const label = format(w.start, "MMMM yyyy", { locale: es });
+      const last = groups[groups.length - 1];
+      if (last?.label === label) {
+        last.weeks.push(w);
+      } else {
+        groups.push({ label, weeks: [w] });
+      }
+    }
+    return groups;
+  }, [weeks]);
+
   const runMagic = (weekShifts: Shift[]) => {
     if (!userId) {
       toast.error("Selecciona un usuario para usar el cuadre mágico");
@@ -64,7 +81,7 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
     }
     const user = users.find((u) => u.id === userId);
     if (!user) return;
-    const result = magicBalanceWeek(user, weekShifts, { jitterMin: jitter, totalJitterMin: Math.min(jitter * 2, 30) });
+    const result = magicBalanceWeek(user, weekShifts, { jitterMin: jitter });
     if (result.changed.length === 0) {
       toast.info("No hay franjas que ajustar");
       return;
@@ -72,6 +89,13 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
     result.changed.forEach((c) =>
       updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" }),
     );
+    // Persistencia inmediata a localStorage y servidor
+    try { localStorage.setItem("tempo-store-v6", JSON.stringify(stateToJSON())); } catch {}
+    fetch(apiUrl("/api/data.php"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(stateToJSON()),
+    }).catch(() => {});
     toast.success(`Cuadrado: ${(result.totalAfter / 60).toFixed(2)}h (objetivo ${(result.targetMin / 60).toFixed(2)}h)`);
   };
 
@@ -84,7 +108,8 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
       toast.error("Total inválido (formato HH:MM o número de horas)");
       return;
     }
-    const changed = rebalanceShifts(weekShifts, mins, jitter);
+    const u = userId ? users.find((u) => u.id === userId) : undefined;
+    const changed = rebalanceShifts(weekShifts, mins, jitter, u);
     changed.forEach((c) =>
       updateShift(c.id, { segments: c.segments, start: c.start, end: c.end, status: "finished" }),
     );
@@ -128,121 +153,127 @@ export function JornadasWeekView({ userId }: { userId?: string }) {
         </Card>
       )}
 
-      {weeks.map((w) => {
-        const total = w.items.reduce((a, s) => a + shiftMinutes(s), 0);
-        const byDay = new Map<string, Shift[]>();
-        w.items.forEach((s) => {
-          const k = s.start.slice(0, 10);
-          if (!byDay.has(k)) byDay.set(k, []);
-          byDay.get(k)!.push(s);
-        });
-        return (
-          <Card key={w.key} className="overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 px-4 py-2.5">
-              <div className="text-sm font-medium">
-                Semana del {format(w.start, "d MMM", { locale: es })} al {format(w.end, "d MMM yyyy", { locale: es })}
-              </div>
-              <div className="flex items-center gap-2">
-                {editingTotal === w.key ? (
-                  <>
-                    <Input
-                      autoFocus
-                      className="h-8 w-28 text-sm"
-                      placeholder="HH:MM o 37.5"
-                      value={totalInput}
-                      onChange={(e) => setTotalInput(e.target.value)}
-                    />
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => applyTotal(w.items)}>
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTotal(null)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={!devMode}
-                    onClick={() => {
-                      setEditingTotal(w.key);
-                      setTotalInput(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`);
-                    }}
-                    className="rounded bg-background px-2.5 py-1 text-sm font-semibold tabular-nums shadow-sm hover:bg-muted disabled:opacity-60"
-                    title={devMode ? "Editar total semanal" : "Modo dev requerido"}
-                  >
-                    {formatDuration(total)}
-                  </button>
-                )}
-                {devMode && (
-                  <Button size="sm" variant="outline" onClick={() => runMagic(w.items)}>
-                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Cuadre mágico
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 divide-x sm:grid-cols-4 lg:grid-cols-7">
-              {w.days.map((d, idx) => {
-                const date = format(d, "yyyy-MM-dd");
-                const items = byDay.get(date) ?? [];
-                const dayTotal = items.reduce((a, s) => a + shiftMinutes(s), 0);
-                const holiday = isHoliday(date, holidays);
-                const vacation = userId ? isVacation(date, userId, vacations) : undefined;
-                const free = userId ? isFreeDay(date, userId, freeDays) : undefined;
-                const bg = holiday?.color
-                  ? { backgroundColor: holiday.color + "22" }
-                  : vacation?.color
-                  ? { backgroundColor: vacation.color + "22" }
-                  : undefined;
-                return (
-                  <div
-                    key={date}
-                    className={`min-h-[120px] p-2 text-xs ${
-                      holiday && !holiday.color ? "bg-destructive/5" :
-                      vacation && !vacation.color ? "bg-success/5" :
-                      free ? "bg-warning/5" : ""
-                    }`}
-                    style={bg}
-                  >
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="font-medium">{dayNames[idx]} {format(d, "d")}</span>
-                      {dayTotal > 0 && (
-                        <span className="tabular-nums text-muted-foreground">{formatDuration(dayTotal)}</span>
-                      )}
-                    </div>
-                    {holiday && (
-                      <div className="mb-1 rounded px-1 py-0.5 text-[10px] font-medium" style={{ backgroundColor: (holiday.color ?? "#ef4444") + "33" }}>
-                        🎉 {holiday.label || holiday.name}
-                      </div>
+      {monthGroups.map((mg) => (
+        <div key={mg.label}>
+          <h3 className="text-sm font-semibold capitalize px-4 pt-3 pb-1">{mg.label}</h3>
+          {mg.weeks.map((w) => {
+            const total = w.items.reduce((a, s) => a + shiftMinutes(s), 0);
+            const byDay = new Map<string, Shift[]>();
+            w.items.forEach((s) => {
+              const k = s.date;
+              if (!byDay.has(k)) byDay.set(k, []);
+              byDay.get(k)!.push(s);
+            });
+            return (
+              <Card key={w.key} className="overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 px-4 py-2.5">
+                  <div className="text-sm font-medium">
+                    Semana del {format(w.start, "d MMM", { locale: es })} al {format(w.end, "d MMM yyyy", { locale: es })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {editingTotal === w.key ? (
+                      <>
+                        <Input
+                          autoFocus
+                          className="h-8 w-28 text-sm"
+                          placeholder="HH:MM o 37.5"
+                          value={totalInput}
+                          onChange={(e) => setTotalInput(e.target.value)}
+                        />
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => applyTotal(w.items)}>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTotal(null)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={!devMode}
+                        onClick={() => {
+                          setEditingTotal(w.key);
+                          setTotalInput(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`);
+                        }}
+                        className="rounded bg-background px-2.5 py-1 text-sm font-semibold tabular-nums shadow-sm hover:bg-muted disabled:opacity-60"
+                        title={devMode ? "Editar total semanal" : "Solo administrador"}
+                      >
+                        {formatDuration(total)}
+                      </button>
                     )}
-                    {vacation && (
-                      <div className="mb-1 rounded px-1 py-0.5 text-[10px] font-medium" style={{ backgroundColor: (vacation.color ?? "#22c55e") + "33" }}>
-                        ✈️ {vacation.label || (vacation.kind ?? "Vacaciones")}
-                      </div>
-                    )}
-                    {free && (
-                      <div className="mb-1 rounded bg-warning/20 px-1 py-0.5 text-[10px] font-medium">
-                        Día libre
-                      </div>
-                    )}
-                    {items.length > 0 && (
-                      <div className="space-y-1">
-                        {items.map((s) => (
-                          <SegmentChips
-                            key={s.id}
-                            segments={s.segments}
-                            size="xs"
-                            onSegmentChange={devMode ? (id, patch) => editSegment(s, id, patch) : undefined}
-                          />
-                        ))}
-                      </div>
+                    {devMode && (
+                      <Button size="sm" variant="outline" onClick={() => runMagic(w.items)}>
+                        <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Cuadre mágico
+                      </Button>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-        );
-      })}
+                </div>
+                <div className="grid grid-cols-2 divide-x sm:grid-cols-4 lg:grid-cols-7">
+                  {w.days.map((d, idx) => {
+                    const date = format(d, "yyyy-MM-dd");
+                    const items = byDay.get(date) ?? [];
+                    const dayTotal = items.reduce((a, s) => a + shiftMinutes(s), 0);
+                    const holiday = isHoliday(date, holidays);
+                    const vacation = userId ? isVacation(date, userId, vacations) : undefined;
+                    const free = userId ? isFreeDay(date, userId, freeDays) : undefined;
+                    const bg = holiday?.color
+                      ? { backgroundColor: holiday.color + "22" }
+                      : vacation?.color
+                      ? { backgroundColor: vacation.color + "22" }
+                      : undefined;
+                    return (
+                      <div
+                        key={date}
+                        className={`min-h-[120px] p-2 text-xs ${
+                          holiday && !holiday.color ? "bg-destructive/5" :
+                          vacation && !vacation.color ? "bg-success/5" :
+                          free ? "bg-warning/5" : ""
+                        }`}
+                        style={bg}
+                      >
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="font-medium">{dayNames[idx]} {format(d, "d")}</span>
+                          {dayTotal > 0 && (
+                            <span className="tabular-nums text-muted-foreground">{formatDuration(dayTotal)}</span>
+                          )}
+                        </div>
+                        {holiday && (
+                          <div className="mb-1 rounded px-1 py-0.5 text-[10px] font-medium" style={{ backgroundColor: (holiday.color ?? "#ef4444") + "33" }}>
+                            🎉 {holiday.label || holiday.name}
+                          </div>
+                        )}
+                        {vacation && (
+                          <div className="mb-1 rounded px-1 py-0.5 text-[10px] font-medium" style={{ backgroundColor: (vacation.color ?? "#22c55e") + "33" }}>
+                            ✈️ {vacation.label || (vacation.kind ?? "Vacaciones")}
+                          </div>
+                        )}
+                        {free && (
+                          <div className="mb-1 rounded bg-warning/20 px-1 py-0.5 text-[10px] font-medium">
+                            Día libre
+                          </div>
+                        )}
+                        {items.length > 0 && (
+                          <div className="space-y-1">
+                            {items.map((s) => (
+                              <SegmentChips
+                                key={s.id}
+                                segments={s.segments}
+                                size="xs"
+                                avatarColor={users.find((u) => u.id === s.userId)?.avatarColor}
+                                onSegmentChange={devMode ? (id, patch) => editSegment(s, id, patch) : undefined}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      ))}
 
       {pageCount < allWeeks.length && (
         <div className="flex justify-center pt-2 no-print">

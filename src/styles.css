@@ -90,13 +90,13 @@
   --chart-4: oklch(0.6 0.22 25);
   --chart-5: oklch(0.6 0.18 320);
 
-  --sidebar: oklch(0.99 0.002 250);
+  --sidebar: oklch(0.96 0.01 255);
   --sidebar-foreground: oklch(0.3 0.02 260);
   --sidebar-primary: oklch(0.55 0.18 265);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.96 0.01 265);
+  --sidebar-accent: oklch(0.915 0.015 260);
   --sidebar-accent-foreground: oklch(0.3 0.05 265);
-  --sidebar-border: oklch(0.92 0.008 260);
+  --sidebar-border: oklch(0.88 0.012 255);
   --sidebar-ring: oklch(0.55 0.18 265);
 }
 
@@ -144,6 +144,16 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+  }
+}
+
+@media (pointer: coarse) {
+  button, [role="button"], a, input, select, textarea, label {
+    min-height: 44px;
+  }
+  .rdp-day {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

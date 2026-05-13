@@ -53,7 +53,7 @@ function AusenciasPage() {
   return (
     <>
       <AppHeader title="Ausencias" />
-      <main className="flex-1 space-y-4 p-6">
+      <main className="flex-1 space-y-4 p-4 sm:p-6">
         <div className="flex justify-between">
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -67,20 +67,21 @@ function AusenciasPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Usuario</TableHead>
+                <TableHead className="hidden sm:table-cell">Usuario</TableHead>
                 <TableHead>Motivo</TableHead>
                 <TableHead>Inicio</TableHead>
                 <TableHead>Fin</TableHead>
-                <TableHead>Días</TableHead>
+                <TableHead className="hidden sm:table-cell">Días</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Vacaciones</TableHead>
+                <TableHead className="hidden sm:table-cell">Vacaciones</TableHead>
+                <TableHead className="hidden sm:table-cell">Notas</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {absences.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground whitespace-nowrap">
                     No hay ningún registro que mostrar.
                   </TableCell>
                 </TableRow>
@@ -90,11 +91,11 @@ function AusenciasPage() {
                 const days = differenceInCalendarDays(parseISO(a.endDate), parseISO(a.startDate)) + 1;
                 return (
                   <TableRow key={a.id}>
-                    <TableCell className="text-sm">{u?.name}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm">{u?.name}</TableCell>
                     <TableCell className="text-sm">{a.reason}</TableCell>
-                    <TableCell className="text-sm tabular-nums">{format(parseISO(a.startDate), "dd/MM/yyyy")}</TableCell>
-                    <TableCell className="text-sm tabular-nums">{format(parseISO(a.endDate), "dd/MM/yyyy")}</TableCell>
-                    <TableCell className="text-sm tabular-nums">{days}</TableCell>
+                    <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(parseISO(a.startDate), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(parseISO(a.endDate), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm tabular-nums">{days}</TableCell>
                     <TableCell>
                       <Badge
                         className={
@@ -106,7 +107,8 @@ function AusenciasPage() {
                         {a.status === "approved" ? "Aprobada" : a.status === "rejected" ? "Rechazada" : "Pendiente"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">{a.consumesVacation ? "Sí" : "No"}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm">{a.consumesVacation ? "Sí" : "No"}</TableCell>
+                    <TableCell className="hidden sm:table-cell max-w-[200px] truncate text-sm text-muted-foreground">{a.notes || "—"}</TableCell>
                     <TableCell className="text-right">
                       {a.status === "pending" && (
                         <>
@@ -134,7 +136,7 @@ function AusenciasPage() {
 }
 
 function AbsenceForm({ onClose, onSave }: { onClose: () => void; onSave: (a: Omit<Absence, "id">) => void }) {
-  const { users, currentUserId } = useAppStore();
+  const { users, currentUserId, absenceTypes } = useAppStore();
   const [userId, setUserId] = useState(currentUserId);
   const [reason, setReason] = useState("Vacaciones");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
@@ -163,15 +165,11 @@ function AbsenceForm({ onClose, onSave }: { onClose: () => void; onSave: (a: Omi
           <Select value={reason} onValueChange={setReason}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Vacaciones">Vacaciones</SelectItem>
-              <SelectItem value="Enfermedad">Enfermedad</SelectItem>
-              <SelectItem value="Asuntos propios">Asuntos propios</SelectItem>
-              <SelectItem value="Permiso">Permiso retribuido</SelectItem>
-              <SelectItem value="Otro">Otro</SelectItem>
+              {absenceTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="grid gap-2"><Label>Desde</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
           <div className="grid gap-2"><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
         </div>

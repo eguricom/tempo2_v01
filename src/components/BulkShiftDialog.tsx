@@ -36,9 +36,11 @@ const dayLabels = [
 export function BulkShiftDialog({
   onClose,
   onSave,
+  devMode = true,
 }: {
   onClose: () => void;
   onSave: (s: Omit<Shift, "id">[]) => void;
+  devMode?: boolean;
 }) {
   const { users, currentUserId, holidays, vacations, freeDays } = useAppStore();
   const [userId, setUserId] = useState(currentUserId);
@@ -184,6 +186,14 @@ export function BulkShiftDialog({
                 onSelect={(r) => setRange((r as { from?: Date; to?: Date }) ?? {})}
                 numberOfMonths={1}
                 weekStartsOn={1}
+                disabled={!devMode ? (d: Date) => {
+                  const limit = new Date();
+                  limit.setDate(limit.getDate() - 14);
+                  limit.setHours(0, 0, 0, 0);
+                  const today = new Date();
+                  today.setHours(23, 59, 59, 999);
+                  return d < limit || d > today;
+                } : undefined}
                 className={cn("p-3 pointer-events-auto")}
               />
             </div>
@@ -192,7 +202,9 @@ export function BulkShiftDialog({
                 ? `${format(range.from, "dd/MM/yyyy")} → ${format(range.to, "dd/MM/yyyy")}`
                 : range.from
                 ? `Inicio ${format(range.from, "dd/MM/yyyy")} — selecciona el final`
-                : "Haz clic en una fecha de inicio y otra de fin"}
+                : devMode
+                ? "Haz clic en una fecha de inicio y otra de fin"
+                : "Haz clic en una fecha de inicio y otra de fin (máx. 14 días atrás)"}
             </p>
           </div>
 
@@ -207,7 +219,7 @@ export function BulkShiftDialog({
                     type="button"
                     onClick={() => toggleDay(d.i)}
                     className={cn(
-                      "h-9 w-12 rounded-md border text-xs font-medium transition-colors",
+                      "min-h-[44px] min-w-[44px] h-9 w-12 rounded-md border text-xs font-medium transition-colors",
                       active
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background hover:bg-muted",
@@ -236,27 +248,29 @@ export function BulkShiftDialog({
 
           {!useUserSchedule && <SegmentEditor segments={segments} onChange={setSegments} />}
 
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox id="randomize" checked={randomize} onCheckedChange={(v) => setRandomize(!!v)} />
-              <Label htmlFor="randomize" className="cursor-pointer text-sm">
-                Aleatorizar inicio/fin de franjas
-              </Label>
-            </div>
-            {randomize && (
-              <div className="grid gap-2 pl-6">
-                <Label className="text-xs">Desfase máximo (segundos): ±{jitterSec}s</Label>
-                <input
-                  type="range"
-                  min={10}
-                  max={120}
-                  step={10}
-                  value={jitterSec}
-                  onChange={(e) => setJitterSec(+e.target.value)}
-                />
+          {devMode && (
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox id="randomize" checked={randomize} onCheckedChange={(v) => setRandomize(!!v)} />
+                <Label htmlFor="randomize" className="cursor-pointer text-sm">
+                  Aleatorizar inicio/fin de franjas
+                </Label>
               </div>
-            )}
-          </div>
+              {randomize && (
+                <div className="grid gap-2 pl-6">
+                  <Label className="text-xs">Desfase máximo (segundos): ±{jitterSec}s</Label>
+                  <input
+                    type="range"
+                    min={10}
+                    max={120}
+                    step={10}
+                    value={jitterSec}
+                    onChange={(e) => setJitterSec(+e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="rounded-md border p-3 text-xs space-y-1">
             <p><span className="font-medium">{counters.valid}</span> jornadas a crear</p>

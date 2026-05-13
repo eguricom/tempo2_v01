@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Manual de Usuario — Tempo</title>
+<style>
+  @page {
+    margin: 2cm;
+    @top-center { content: "Tempo — Manual de Usuario"; font-size: 9pt; color: #888; }
+    @bottom-center { content: "Página " counter(page); font-size: 9pt; color: #888; }
+  }
+  body {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1a1a2e;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2cm 1cm;
+  }
+  @media screen {
+    body { background: #f5f5f5; }
+    .page { background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.08); padding: 3cm 2.5cm; margin-bottom: 2cm; }
+  }
+  @media print {
+    body { padding: 0; }
+    .page { padding: 0; margin: 0; box-shadow: none; break-inside: avoid; }
+    .no-print { display: none; }
+  }
+  h1 { font-size: 24pt; color: #4f46e5; margin-top: 0; border-bottom: 3px solid #4f46e5; padding-bottom: 10px; }
+  h2 { font-size: 16pt; color: #4f46e5; margin-top: 2em; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  h3 { font-size: 13pt; color: #3730a3; margin-top: 1.5em; }
+  h4 { font-size: 11pt; color: #1a1a2e; margin-top: 1.2em; }
+  p, li { text-align: justify; }
+  code { background: #f0f0f5; padding: 1px 5px; border-radius: 3px; font-size: 10pt; }
+  pre { background: #f0f0f5; padding: 12px; border-radius: 6px; font-size: 9pt; overflow-x: auto; }
+  .cover { text-align: center; padding: 4cm 0 3cm; }
+  .cover h1 { font-size: 32pt; border: none; }
+  .cover .subtitle { font-size: 14pt; color: #666; margin-top: .5em; }
+  .cover .version { font-size: 10pt; color: #999; margin-top: 2em; }
+  .cover .logo { font-size: 48pt; margin-bottom: .5em; }
+  .toc { margin: 2em 0; }
+  .toc a { color: #4f46e5; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc li { margin: .3em 0; }
+  .note { background: #eef2ff; border-left: 4px solid #4f46e5; padding: 10px 14px; margin: 1em 0; border-radius: 0 6px 6px 0; font-size: 10pt; }
+  .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 1em 0; border-radius: 0 6px 6px 0; font-size: 10pt; }
+  .danger { background: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 14px; margin: 1em 0; border-radius: 0 6px 6px 0; font-size: 10pt; }
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 10pt; }
+  th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+  th { background: #f0f0f5; font-weight: 600; }
+  tr:nth-child(even) { background: #fafafa; }
+  img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin: 1em 0; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 9pt; font-weight: 600; }
+  .badge-admin { background: #eef2ff; color: #4f46e5; }
+  .badge-employee { background: #f0fdf4; color: #16a34a; }
+  .badge-new { background: #fef3c7; color: #d97706; }
+  .footer { margin-top: 3em; padding-top: 1em; border-top: 1px solid #ddd; font-size: 9pt; color: #999; text-align: center; }
+  .print-btn { display: inline-block; padding: 10px 24px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 12pt; cursor: pointer; text-decoration: none; margin: 20px 0; }
+  .print-btn:hover { background: #3730a3; }
+  .screenshot { background: #f8f8fc; border: 1px solid #e0e0ef; border-radius: 8px; padding: 16px; margin: 1em 0; text-align: center; font-size: 10pt; color: #888; }
+
+  /* CSS Mockups — representaciones visuales de la interfaz */
+  .mockup { border: 1px solid #d0d0e0; border-radius: 10px; overflow: hidden; margin: 1.5em 0; box-shadow: 0 2px 8px rgba(0,0,0,.06); font-size: 9pt; }
+  .mockup-header { background: #4f46e5; color: #fff; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .mockup-header .title { font-weight: 600; font-size: 10pt; }
+  .mockup-header .badge-mock { background: rgba(255,255,255,.2); padding: 2px 10px; border-radius: 10px; font-size: 8pt; }
+  .mockup-body { background: #fff; padding: 12px 16px; }
+  .mockup-row { display: flex; border-bottom: 1px solid #f0f0f5; padding: 6px 0; }
+  .mockup-row:last-child { border: none; }
+  .mockup-label { width: 100px; color: #888; font-size: 8pt; }
+  .mockup-value { flex: 1; font-weight: 500; }
+  .mockup-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .mockup-table th { background: #f5f5fa; padding: 6px 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #e0e0ef; }
+  .mockup-table td { padding: 6px 8px; border-bottom: 1px solid #f0f0f5; }
+  .mockup-table .nif-masked { color: #999; font-family: monospace; }
+  .mockup-tag { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 7pt; font-weight: 600; }
+  .mockup-tag-green { background: #dcfce7; color: #16a34a; }
+  .mockup-tag-blue { background: #e0e7ff; color: #4f46e5; }
+  .mockup-tag-gray { background: #f0f0f5; color: #666; }
+  .mockup-btn { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 8pt; cursor: default; }
+  .mockup-btn-primary { background: #4f46e5; color: #fff; }
+  .mockup-btn-outline { border: 1px solid #d0d0e0; color: #555; }
+  .mockup-input { border: 1px solid #d0d0e0; border-radius: 6px; padding: 6px 10px; font-size: 8pt; width: 100%; box-sizing: border-box; }
+  .mockup-sidebar { background: #f8f8fc; padding: 16px; border-right: 1px solid #e0e0ef; width: 200px; }
+  .mockup-sidebar-item { padding: 6px 12px; border-radius: 6px; margin: 2px 0; color: #555; }
+  .mockup-sidebar-item.active { background: #eef2ff; color: #4f46e5; font-weight: 600; }
+  .mockup-layout { display: flex; min-height: 200px; }
+  .mockup-content { flex: 1; padding: 16px; }
+  .mockup-stat { display: inline-block; background: #f8f8fc; border: 1px solid #e0e0ef; border-radius: 8px; padding: 12px 20px; margin: 4px; text-align: center; }
+  .mockup-stat .num { font-size: 14pt; font-weight: 700; color: #1a1a2e; }
+  .mockup-stat .lbl { font-size: 7pt; color: #888; margin-top: 2px; }
+  .mockup-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 7pt; }
+  .mockup-cal .day { padding: 6px 2px; text-align: center; border-radius: 4px; background: #f8f8fc; }
+  .mockup-cal .day.has-shift { background: #dcfce7; color: #16a34a; font-weight: 600; }
+  .mockup-cal .day.vacation { background: #fef3c7; color: #d97706; }
+  .mockup-cal .day.weekend { background: #f0f0f5; color: #bbb; }
+  .mockup-cal .day.today { border: 2px solid #4f46e5; }
+</style>
+</head>
+<body>
+
+<div class="no-print" style="text-align:center;margin-bottom:2em">
+  <button onclick="window.print()" class="print-btn">📄 Guardar como PDF / Imprimir</button>
+  <p style="font-size:10pt;color:#888;margin-top:8px">Usa este botón o Ctrl+P para guardar como PDF</p>
+</div>
+
+<div class="page">
+<div class="cover">
+  <div class="logo">⏱️</div>
+  <h1>Tempo</h1>
+  <div class="subtitle">Manual de Usuario — Gestión de tiempo de empleados</div>
+  <div class="version">Versión 1.0 &mdash; Mayo 2026</div>
+</div>
+
+<h2>Índice</h2>
+<ol class="toc">
+  <li><a href="#intro">Introducción</a></li>
+  <li><a href="#primeros-pasos">Primeros pasos</a></li>
+  <li><a href="#jornadas">Registro de jornadas</a></li>
+  <li><a href="#ausencias">Gestión de ausencias</a></li>
+  <li><a href="#vacaciones">Vacaciones y festivos</a></li>
+  <li><a href="#usuarios">Usuarios y roles</a></li>
+  <li><a href="#configuracion">Configuración</a></li>
+  <li><a href="#admin">Funciones de administración</a></li>
+  <li><a href="#seguridad">Seguridad</a></li>
+  <li><a href="#faq">Preguntas frecuentes</a></li>
+</ol>
+</div>
+
+<!--- === 1. INTRODUCCIÓN === -->
+<div class="page">
+<h2 id="intro">1. Introducción</h2>
+
+<p><strong>Tempo</strong> es una aplicación web para la gestión del tiempo de empleados. Permite registrar jornadas laborales, gestionar ausencias, vacaciones y festivos, y generar informes. Está diseñada para pequeñas y medianas empresas que necesitan un control horario sencillo pero completo.</p>
+
+<h3>1.1 Requisitos técnicos</h3>
+<ul>
+  <li>Navegador web moderno (Chrome 90+, Firefox 90+, Safari 15+, Edge 90+)</li>
+  <li>Conexión a internet</li>
+  <li>Resolución mínima recomendada: 1024×768</li>
+</ul>
+
+<h3>1.2 Estructura de la aplicación</h3>
+<p>La aplicación se organiza en las siguientes secciones, accesibles desde el menú lateral izquierdo:</p>
+<table>
+  <tr><th>Sección</th><th>Descripción</th></tr>
+  <tr><td>Jornadas</td><td>Registro y visualización de fichajes diarios</td></tr>
+  <tr><td>Calendario</td><td>Vista mensual de jornadas</td></tr>
+  <tr><td>Usuarios</td><td>Gestión de empleados y departamentos</td></tr>
+  <tr><td>Ausencias</td><td>Solicitud y gestión de ausencias</td></tr>
+  <tr><td>Vacaciones</td><td>Calendario de vacaciones y festivos</td></tr>
+  <tr><td>Informes</td><td>Exportación de datos</td></tr>
+  <tr><td>Configuración</td><td>Ajustes del sistema</td></tr>
+</table>
+
+<div class="note">
+  <strong>Nota:</strong> Algunas secciones y funciones solo están disponibles para usuarios con rol de <strong>Administrador</strong>.
+</div>
+</div>
+
+<!--- === 2. PRIMEROS PASOS === -->
+<div class="page">
+<h2 id="primeros-pasos">2. Primeros pasos</h2>
+
+<h3>2.1 Inicio de sesión</h3>
+<p>Al acceder a la aplicación por primera vez, verás la pantalla de inicio de sesión. Debes introducir:</p>
+<ul>
+  <li><strong>Nombre</strong> (opcional si usas otro campo identificativo)</li>
+  <li><strong>Primer apellido</strong> (opcional)</li>
+  <li><strong>Segundo apellido</strong> (opcional)</li>
+  <li><strong>Email</strong> (opcional si usas otro campo)</li>
+  <li><strong>NIF</strong> (obligatorio) — funciona como contraseña inicial</li>
+</ul>
+
+<div class="mockup" style="max-width:360px">
+  <div class="mockup-header">
+    <span class="title">⏱️ Tempo</span>
+    <span class="badge-mock">Iniciar sesión</span>
+  </div>
+  <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px">
+    <div><label style="font-size:7pt;color:#888">Nombre</label><div class="mockup-input" style="width:auto">María</div></div>
+    <div><label style="font-size:7pt;color:#888">Primer apellido</label><div class="mockup-input" style="width:auto">López</div></div>
+    <div><label style="font-size:7pt;color:#888">Segundo apellido</label><div class="mockup-input" style="width:auto">García</div></div>
+    <div><label style="font-size:7pt;color:#888">Email</label><div class="mockup-input" style="width:auto">maria@empresa.com</div></div>
+    <div><label style="font-size:7pt;color:#888">NIF</label><div class="mockup-input" style="width:auto">•••••••••</div></div>
+    <div style="text-align:right"><span class="mockup-btn mockup-btn-primary">Entrar</span></div>
+    <div style="font-size:7pt;color:#4f46e5;text-align:center;margin-top:4px">Recordar credenciales</div>
+  </div>
+</div>
+
+<div class="warning">
+  <strong>Importante:</strong> La primera vez que accedas con tu NIF, el sistema te obligará a cambiar la contraseña. Deberás elegir una contraseña segura de al menos 12 caracteres, con mayúsculas, minúsculas, números y caracteres especiales.
+</div>
+
+<h3>2.2 Primer acceso</h3>
+<ol>
+  <li>Introduce al menos un campo identificativo (nombre, email...) y tu NIF</li>
+  <li>Pulsa <strong>"Entrar"</strong></li>
+  <li>Si es tu primer acceso, se mostrará la pantalla de <strong>cambio de contraseña</strong></li>
+  <li>Elige una contraseña nueva que cumpla los requisitos de seguridad</li>
+  <li>Confirma la contraseña y pulsa <strong>"Cambiar contraseña"</strong></li>
+  <li>Ya puedes usar la aplicación con normalidad</li>
+</ol>
+
+<div class="note">
+  <strong>Recordar credenciales:</strong> Si has olvidado tus datos, pulsa el enlace "Recordar credenciales" en la pantalla de login e introduce tu email. El sistema te mostrará tus datos identificativos (NIF enmascarado).
+</div>
+
+<h3>2.3 Cierre de sesión</h3>
+<p>Para cerrar sesión, pulsa el botón <strong>"Cerrar sesión"</strong> en el pie del menú lateral izquierdo.</p>
+
+<h3>2.4 Modo oscuro</h3>
+<p>En el pie del menú lateral hay un botón con el icono ☀️/🌙 para alternar entre modo claro y modo oscuro. La preferencia se guarda automáticamente.</p>
+</div>
+
+<!--- === 3. JORNADAS === -->
+<div class="page">
+<h2 id="jornadas">3. Registro de jornadas</h2>
+
+<h3>3.1 Fichar entrada/salida</h3>
+<p>En la cabecera de la aplicación, junto al título de la sección actual, encontrarás los controles de fichaje:</p>
+<ul>
+  <li><strong>"Iniciar jornada"</strong> — Registra la hora de inicio. Se muestra cuando no tienes un fichaje activo.</li>
+  <li><strong>"Trabajando"</strong> — Indicador visible mientras tienes una jornada en curso.</li>
+  <li><strong>"Parar"</strong> — Finaliza la jornada activa y registra la hora de fin.</li>
+</ul>
+
+<div class="note">
+  <strong>Nota:</strong> Solo puede haber una jornada activa a la vez por usuario.
+</div>
+
+<div class="mockup" style="max-width:400px">
+  <div class="mockup-header">
+    <span class="title">⚡ Controles de fichaje</span>
+    <span class="badge-mock">Jornadas</span>
+  </div>
+  <div class="mockup-body" style="display:flex;align-items:center;gap:12px">
+    <span class="mockup-btn mockup-btn-primary">Iniciar jornada</span>
+    <span style="font-size:8pt;color:#888">—</span>
+    <span style="font-size:8pt;color:#16a34a;font-weight:600">● Trabajando</span>
+    <span class="mockup-btn mockup-btn-outline">Parar</span>
+  </div>
+  <div class="mockup-body" style="border-top:1px solid #f0f0f5;padding-top:8px;font-size:7pt;color:#888">
+    Inicio: 08:32 · En curso: 3h 28min
+  </div>
+</div>
+
+<h3>3.2 Añadir jornadas manualmente</h3>
+<p>Para añadir jornadas de forma manual (por ejemplo, para días pasados):</p>
+<ol>
+  <li>Ve a la sección <strong>Jornadas</strong> en el menú lateral</li>
+  <li>Selecciona un rango de fechas con los filtros superiores</li>
+  <li>Pulsa <strong>"Añadir jornada"</strong></li>
+  <li>Completa los datos: fecha, hora de inicio, hora de fin, y opcionalmente notas y modo de trabajo</li>
+  <li>Pulsa <strong>"Guardar"</strong></li>
+</ol>
+
+<div class="warning">
+  <strong>Limitación temporal:</strong> Sin modo administrador, solo puedes editar o añadir jornadas de los últimos 7 días.
+</div>
+
+<h3>3.3 Rellenar fichajes olvidados</h3>
+<p>El administrador puede usar la función <strong>"Rellenar fichajes olvidados"</strong> para generar automáticamente jornadas basadas en el horario semanal del usuario para un rango de fechas, respetando vacaciones y festivos existentes.</p>
+
+<div class="mockup">
+  <div class="mockup-header">
+    <span class="title">📋 Jornadas recientes</span>
+    <span class="badge-mock">Filtro: última semana</span>
+  </div>
+  <div class="mockup-body" style="display:flex;gap:12px;align-items:center;padding-bottom:8px">
+    <span style="font-size:7pt;color:#888">Desde:</span><span class="mockup-input" style="width:120px">2026-05-04</span>
+    <span style="font-size:7pt;color:#888">Hasta:</span><span class="mockup-input" style="width:120px">2026-05-10</span>
+    <span class="mockup-btn mockup-btn-primary">Añadir jornada</span>
+    <span class="mockup-btn mockup-btn-outline">Rellenar fichajes</span>
+  </div>
+  <table class="mockup-table">
+    <tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Total</th><th>Estado</th></tr>
+    <tr><td>2026-05-04</td><td>08:30</td><td>17:00</td><td>8h 30m</td><td><span class="mockup-tag mockup-tag-green">Completa</span></td></tr>
+    <tr><td>2026-05-05</td><td>08:45</td><td>16:30</td><td>7h 45m</td><td><span class="mockup-tag mockup-tag-green">Completa</span></td></tr>
+    <tr><td>2026-05-06</td><td>09:00</td><td>—</td><td>—</td><td><span class="mockup-tag mockup-tag-blue">En curso</span></td></tr>
+    <tr><td>2026-05-07</td><td colspan="4" style="color:#999;text-align:center">Sin registro</td></tr>
+    <tr><td>2026-05-08</td><td colspan="4" style="color:#999;text-align:center">Sin registro</td></tr>
+  </table>
+</div>
+
+<h3>3.4 Notas en jornadas</h3>
+<p>Cada jornada puede incluir notas adicionales. Al crear o editar una jornada, usa el campo <strong>"Notas"</strong> para añadir información relevante.</p>
+
+<h3>3.5 Vista de calendario</h3>
+<p>La sección <strong>Calendario</strong> muestra una vista mensual de todas las jornadas, con colores diferenciados por usuario. Los días con jornada completa se muestran en verde, los parciales en amarillo, y los festivos/vacaciones en colores distintivos.</p>
+
+<div class="mockup">
+  <div class="mockup-header">
+    <span class="title">📅 Mayo 2026</span>
+    <span class="badge-mock">Calendario</span>
+  </div>
+  <div class="mockup-body">
+    <div class="mockup-cal">
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">L</div>
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">M</div>
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">X</div>
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">J</div>
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">V</div>
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">S</div>
+      <div style="font-weight:600;text-align:center;font-size:7pt;color:#888">D</div>
+      <div class="day weekend">27</div><div class="day weekend">28</div><div class="day weekend">29</div><div class="day weekend">30</div>
+      <div class="day has-shift">1</div><div class="day has-shift">2</div><div class="day weekend">3</div><div class="day weekend">4</div>
+      <div class="day has-shift">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div>
+      <div class="day">9</div><div class="day weekend">10</div><div class="day weekend">11</div><div class="day">12</div>
+      <div class="day">13</div><div class="day">14</div><div class="day">15</div><div class="day">16</div>
+      <div class="day">17</div><div class="day weekend">18</div><div class="day weekend">19</div><div class="day today">20</div>
+      <div class="day vacation">21</div><div class="day vacation">22</div><div class="day vacation">23</div>
+      <div class="day">24</div><div class="day weekend">25</div><div class="day weekend">26</div><div class="day">27</div>
+      <div class="day">28</div><div class="day">29</div><div class="day">30</div><div class="day">31</div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:8px;font-size:7pt;color:#888">
+      <span>🟢 Jornada completa</span>
+      <span>🟡 Vacaciones</span>
+      <span>⬜ Sin registro</span>
+      <span style="color:#bbb"> Fin de semana</span>
+    </div>
+  </div>
+</div>
+
+<h3>3.6 Vista semanal</h3>
+<p>La vista semanal de jornadas muestra una tabla detallada con horas de inicio, fin, pausas, y total de horas trabajadas por día y por semana.</p>
+</div>
+
+<!--- === 4. AUSENCIAS === -->
+<div class="page">
+<h2 id="ausencias">4. Gestión de ausencias</h2>
+
+<h3>4.1 Tipos de ausencia</h3>
+<p>El sistema incluye los siguientes tipos de ausencia por defecto:</p>
+<ul>
+  <li>Vacaciones</li>
+  <li>Enfermedad</li>
+  <li>Asuntos propios</li>
+  <li>Permiso retribuido</li>
+  <li>Otro</li>
+</ul>
+<p>El administrador puede añadir o eliminar tipos de ausencia desde la configuración.</p>
+
+<h3>4.2 Registrar una ausencia</h3>
+<ol>
+  <li>Ve a la sección <strong>Ausencias</strong></li>
+  <li>Pulsa <strong>"Nueva ausencia"</strong></li>
+  <li>Selecciona el tipo, las fechas de inicio y fin, y añade notas si es necesario</li>
+  <li>Indica si la ausencia consume días de vacación</li>
+  <li>Pulsa <strong>"Guardar"</strong></li>
+</ol>
+
+<h3>4.3 Estados de ausencia</h3>
+<table>
+  <tr><th>Estado</th><th>Descripción</th></tr>
+  <tr><td>Pendiente</td><td>Solicitud creada, pendiente de revisión</td></tr>
+  <tr><td>Aprobada</td><td>Solicitud aceptada por el administrador</td></tr>
+  <tr><td>Rechazada</td><td>Solicitud denegada</td></tr>
+</table>
+
+<div class="note">
+  <strong>Nota:</strong> El administrador puede cambiar el estado de cualquier ausencia y editar sus datos.
+</div>
+</div>
+
+<!--- === 5. VACACIONES === -->
+<div class="page">
+<h2 id="vacaciones">5. Vacaciones y festivos</h2>
+
+<h3>5.1 Calendario de vacaciones</h3>
+<p>La sección <strong>Vacaciones</strong> muestra un calendario con todos los períodos vacacionales de los empleados. Desde aquí puedes:</p>
+<ul>
+  <li>Ver las vacaciones de todos los usuarios</li>
+  <li>Añadir nuevos períodos vacacionales</li>
+  <li>Editar o eliminar períodos existentes</li>
+</ul>
+
+<h3>5.2 Añadir vacaciones</h3>
+<ol>
+  <li>Ve a la sección <strong>Vacaciones</strong></li>
+  <li>Selecciona el usuario, las fechas de inicio y fin, y opcionalmente añade notas</li>
+  <li>Pulsa <strong>"Añadir"</strong></li>
+</ol>
+<p>También puedes añadir vacaciones directamente desde la lista de usuarios pulsando el icono 📅 junto a cada usuario.</p>
+
+<h3>5.3 Festivos</h3>
+<p>La aplicación incluye los festivos nacionales de España y los autonómicos de Galicia para 2026. El administrador puede añadir, editar o eliminar festivos.</p>
+
+<h3>5.4 Días libres</h3>
+<p>Además de las vacaciones, puedes registrar <strong>días libres</strong> sueltos (no asociados a un rango de fechas).</p>
+</div>
+
+<!--- === 6. USUARIOS === -->
+<div class="page">
+<h2 id="usuarios">6. Usuarios y roles</h2>
+
+<h3>6.1 Roles disponibles</h3>
+<table>
+  <tr><th>Rol</th><th>Descripción</th></tr>
+  <tr><td><span class="badge badge-admin">Administrador</span></td><td>Acceso completo: crear/editar/eliminar usuarios, gestionar horarios, exportar datos, acceder a configuración y registro de auditoría</td></tr>
+  <tr><td><span class="badge badge-employee">Empleado</span></td><td>Acceso básico: fichar jornadas, solicitar ausencias, ver su propio calendario. No puede ver NIF ni horas semanales de otros usuarios</td></tr>
+</table>
+
+<h3>6.2 Añadir un usuario</h3>
+<ol>
+  <li>Ve a la sección <strong>Usuarios</strong></li>
+  <li>Pulsa <strong>"Nuevo usuario"</strong> (solo administradores)</li>
+  <li>Completa los datos: nombre, apellidos, NIF, email, departamento, rol, y horario semanal</li>
+  <li>Pulsa <strong>"Guardar"</strong></li>
+</ol>
+
+<div class="mockup">
+  <div class="mockup-header">
+    <span class="title">👥 Usuarios</span>
+    <span class="badge-mock">Admin</span>
+  </div>
+  <div class="mockup-body" style="display:flex;gap:8px;padding-bottom:8px">
+    <span class="mockup-btn mockup-btn-primary">Nuevo usuario</span>
+    <div class="mockup-input" style="width:auto">Buscar...</div>
+  </div>
+  <table class="mockup-table">
+    <tr><th>Nombre</th><th>NIF</th><th>Departamento</th><th>Rol</th><th></th></tr>
+    <tr><td>María López García</td><td class="nif-masked">1234****A</td><td><span class="mockup-tag mockup-tag-blue">Ingeniería</span></td><td><span class="mockup-tag mockup-tag-green">Empleado</span></td><td>✏️ 🗑️</td></tr>
+    <tr><td>Carlos Martínez Ruiz</td><td class="nif-masked">5678****B</td><td><span class="mockup-tag mockup-tag-blue">Marketing</span></td><td><span class="mockup-tag mockup-tag-green">Empleado</span></td><td>✏️ 🗑️</td></tr>
+    <tr><td>Ana Fernández López</td><td>12345678Z</td><td><span class="mockup-tag mockup-tag-gray">Dirección</span></td><td><span class="mockup-tag mockup-tag-gray" style="background:#eef2ff;color:#4f46e5">Administrador</span></td><td>✏️ 🗑️</td></tr>
+  </table>
+  <div class="mockup-body" style="border-top:1px solid #f0f0f5;font-size:7pt;color:#999;padding-top:8px">
+    * El NIF completo solo es visible para administradores
+  </div>
+</div>
+
+<div class="note">
+  <strong>Nota:</strong> Los nuevos usuarios se crean sin contraseña personalizada. En su primer inicio de sesión usarán su NIF como contraseña y el sistema les obligará a cambiarla.
+</div>
+
+<h3>6.3 Editar un usuario</h3>
+<p>Pulsa el icono ✏️ junto al usuario que deseas modificar. Los administradores pueden editar cualquier usuario; los empleados solo pueden editar su propio perfil.</p>
+
+<h3>6.4 Departamentos</h3>
+<p>Los usuarios se organizan en departamentos. El administrador puede crear y eliminar departamentos desde la configuración. Cada departamento tiene un nombre y un color asociado.</p>
+
+<h3>6.5 Visibilidad de datos</h3>
+<div class="danger">
+  <strong>Protección de datos:</strong> Los empleados solo pueden ver su propio NIF y horas semanales. El NIF de otros usuarios aparece enmascarado (ej: 1234****A) y las horas semanales se muestran como "—". Solo el administrador puede ver los datos completos.
+</div>
+</div>
+
+<!--- === 7. CONFIGURACIÓN === -->
+<div class="page">
+<h2 id="configuracion">7. Configuración</h2>
+
+<p>La sección de <strong>Configuración</strong> está disponible solo para administradores y se organiza en varias pestañas:</p>
+
+<div class="mockup">
+  <div class="mockup-header">
+    <span class="title">⚙️ Configuración</span>
+    <span class="badge-mock">Admin</span>
+  </div>
+  <div class="mockup-body" style="display:flex;gap:4px;padding-bottom:8px;border-bottom:1px solid #e0e0ef">
+    <span class="mockup-btn mockup-btn-primary" style="font-size:7pt">General</span>
+    <span class="mockup-btn mockup-btn-outline" style="font-size:7pt">Departamentos</span>
+    <span class="mockup-btn mockup-btn-outline" style="font-size:7pt">Tipos de ausencia</span>
+    <span class="mockup-btn mockup-btn-outline" style="font-size:7pt">Otros</span>
+  </div>
+  <div class="mockup-body">
+    <div class="mockup-row"><span class="mockup-label">Horas semanales</span><span class="mockup-value">40h</span></div>
+    <div class="mockup-row"><span class="mockup-label">Horas anuales</span><span class="mockup-value">1800h</span></div>
+    <div class="mockup-row"><span class="mockup-label">Tipo de contrato</span><span class="mockup-value">Jornada completa</span></div>
+    <div class="mockup-row"><span class="mockup-label">Días de vacaciones</span><span class="mockup-value">22 días</span></div>
+    <div class="mockup-row"><span class="mockup-label">Días laborables</span><span class="mockup-value">Lun — Vie</span></div>
+  </div>
+</div>
+
+<h3>7.1 Configuración general</h3>
+<p>Ajustes de la empresa:</p>
+<ul>
+  <li>Horas semanales</li>
+  <li>Horas anuales</li>
+  <li>Tipo de contrato</li>
+  <li>Días de vacaciones por año</li>
+  <li>Días laborables</li>
+</ul>
+
+<h3>7.2 Departamentos</h3>
+<p>Gestión de departamentos: añadir nuevos o eliminar existentes.</p>
+
+<h3>7.3 Tipos de ausencia</h3>
+<p>Personaliza los tipos de ausencia disponibles en la aplicación. Puedes añadir nuevos o eliminar los existentes.</p>
+
+<h3>7.4 Otras configuraciones</h3>
+<ul>
+  <li><strong>Logo de empresa:</strong> Sube un logotipo (JPG/PNG, máximo 1MB) que se mostrará en la pantalla de inicio de sesión</li>
+  <li><strong>Registro de auditoría:</strong> Visualiza todas las acciones realizadas en el sistema con fecha, usuario y detalles</li>
+  <li><strong>Activar/desactivar modo administrador</strong>: Pulsando el texto "By Molotov Cóctel Creativo" en el pie de la página de configuración, puedes activar o desactivar el modo administrador introduciendo la contraseña</li>
+</ul>
+
+<h3>7.5 Modo administrador</h3>
+<p>El modo administrador se activa desde el pie de la página de configuración (texto "By Molotov Cóctel Creativo"). Al activarlo, se desbloquean funciones adicionales como:</p>
+<ul>
+  <li>Crear, editar y eliminar usuarios</li>
+  <li>Rellenar fichajes olvidados</li>
+  <li>Exportar datos</li>
+  <li>Ver todos los informes</li>
+</ul>
+<p>El modo administrador se desactiva automáticamente tras 15 minutos de inactividad por seguridad.</p>
+</div>
+
+<!--- === 8. ADMIN === -->
+<div class="page">
+<h2 id="admin">8. Funciones de administración</h2>
+
+<h3>8.1 Registro de auditoría</h3>
+<p>Todas las acciones importantes quedan registradas en el <strong>registro de auditoría</strong>, accesible desde Configuración → Otras configuraciones. Se registran:</p>
+<ul>
+  <li>Inicios y cierres de sesión</li>
+  <li>Intentos de inicio de sesión fallidos</li>
+  <li>Cambios de contraseña</li>
+  <li>Creación, modificación y eliminación de usuarios</li>
+  <li>Cambios en jornadas, ausencias, vacaciones y festivos</li>
+  <li>Activación/desactivación del modo administrador</li>
+  <li>Exportaciones de datos</li>
+  <li>Cuentas bloqueadas por muchos intentos</li>
+</ul>
+
+<h3>8.2 Informes</h3>
+<p>Desde la sección <strong>Informes</strong> puedes exportar los datos de jornadas. Opciones disponibles:</p>
+<ul>
+  <li>Seleccionar usuario específico o todos</li>
+  <li>Elegir rango de fechas</li>
+  <li>Exportar a PDF con desglose detallado</li>
+  <li>Exportar a CSV para su análisis en Excel</li>
+</ul>
+
+<h3>8.3 Gestión de horarios</h3>
+<p>El administrador puede configurar el horario semanal de cada usuario, incluyendo horarios partidos con pausas. Los horarios se usan como plantilla para la función de "Rellenar fichajes olvidados".</p>
+
+<h3>8.4 Copias de seguridad</h3>
+<p>La aplicación realiza copias de seguridad automáticas cada vez que se guardan datos. Los backups se almacenan fuera del directorio web por seguridad. El administrador puede descargar backups desde la API o desde el panel de configuración.</p>
+
+<h3>8.5 CSV de jornadas</h3>
+<p>Se puede exportar un CSV completo de todas las jornadas con los siguientes campos: Usuario, NIF, Fecha, Inicio, Fin, Minutos trabajados, Minutos descanso, Modalidad y Estado.</p>
+</div>
+
+<!--- === 9. SEGURIDAD === -->
+<div class="page">
+<h2 id="seguridad">9. Seguridad</h2>
+
+<h3>9.1 Autenticación</h3>
+<ul>
+  <li><strong>JWT (JSON Web Tokens):</strong> Todas las comunicaciones con el servidor están protegidas mediante tokens JWT firmados con HMAC-SHA256</li>
+  <li><strong>Contraseñas hasheadas:</strong> Las contraseñas se almacenan hasheadas con SHA-256. Nunca se almacenan en texto plano</li>
+  <li><strong>Cambio obligatorio:</strong> En el primer inicio de sesión, se obliga a cambiar la contraseña (del NIF temporal a una contraseña personal)</li>
+  <li><strong>Política de contraseñas:</strong> Mínimo 12 caracteres, con mayúsculas, minúsculas, números y caracteres especiales. No puede contener nombre, apellidos, NIF ni email del usuario</li>
+</ul>
+
+<h3>9.2 Protección contra ataques</h3>
+<ul>
+  <li><strong>Rate limiting:</strong> Máximo 120 peticiones por minuto por IP. El login se bloquea tras 5 intentos fallidos durante 15 minutos</li>
+  <li><strong>CSP (Content Security Policy):</strong> Cabecera que limita qué recursos puede cargar el navegador, previniendo ataques XSS</li>
+  <li><strong>CORS restringido:</strong> Solo el dominio autorizado puede realizar peticiones a la API</li>
+  <li><strong>Mensaje genérico de error:</strong> Siempre se muestra "Credenciales incorrectas" sin revelar si el usuario existe o no</li>
+</ul>
+
+<h3>9.3 Protección de datos personales</h3>
+<ul>
+  <li><strong>NIF enmascarado:</strong> En tablas y listados, el NIF se muestra parcialmente (ej: 1234****A). Solo el administrador ve el NIF completo</li>
+  <li><strong>Backups fuera del web root:</strong> Las copias de seguridad se almacenan fuera del directorio accesible por web</li>
+  <li><strong>Archivos protegidos:</strong> Los archivos .env, .json y directorios ocultos están bloqueados por .htaccess</li>
+</ul>
+
+<h3>9.4 Variables de entorno</h3>
+<p>La configuración sensible se almacena en un archivo <code>.env</code> fuera del alcance web:</p>
+<table>
+  <tr><th>Variable</th><th>Propósito</th></tr>
+  <tr><td><code>JWT_SECRET</code></td><td>Clave secreta para firmar tokens JWT</td></tr>
+  <tr><td><code>ALLOWED_ORIGIN</code></td><td>Dominio permitido para CORS</td></tr>
+  <tr><td><code>RATE_LIMIT_MAX</code></td><td>Máximo de peticiones por ventana de tiempo</td></tr>
+  <tr><td><code>RATE_LIMIT_WINDOW</code></td><td>Ventana de tiempo en segundos para rate limiting</td></tr>
+</table>
+
+<h3>9.5 Sesiones</h3>
+<ul>
+  <li>Los tokens JWT expiran a las 24 horas</li>
+  <li>El modo administrador se desactiva tras 15 minutos de inactividad</li>
+  <li>El token se almacena en <code>sessionStorage</code> y se elimina al cerrar sesión o el navegador</li>
+</ul>
+</div>
+
+<!--- === 10. FAQ === -->
+<div class="page">
+<h2 id="faq">10. Preguntas frecuentes</h2>
+
+<h4>¿He olvidado mi contraseña?</h4>
+<p>En la pantalla de inicio de sesión, pulsa "Recordar credenciales" e introduce tu email. El sistema te mostrará tu nombre y NIF enmascarado. Si has cambiado tu contraseña y la has olvidado, contacta con el administrador para restablecerla.</p>
+
+<h4>¿Puedo fichar desde el móvil?</h4>
+<p>Sí, la aplicación es responsive y funciona correctamente en navegadores móviles modernos. Puedes iniciar y parar jornadas desde tu teléfono.</p>
+
+<h4>¿Qué significa el modo administrador?</h4>
+<p>El modo administrador desbloquea funciones avanzadas como crear usuarios, rellenar fichajes automáticos y ver datos completos de todos los empleados. Se activa desde la configuración con una contraseña.</p>
+
+<h4>¿Cómo se calculan las horas trabajadas?</h4>
+<p>Las horas trabajadas se calculan a partir de los segmentos de trabajo definidos en cada jornada. Si la jornada no tiene segmentos, se calcula la diferencia entre hora de inicio y fin. Las pausas no se contabilizan como tiempo trabajado.</p>
+
+<h4>¿Se notifican las ausencias?</h4>
+<p>Actualmente la aplicación no envía notificaciones. Las ausencias quedan registradas y el administrador puede revisarlas y cambiar su estado desde la sección de ausencias.</p>
+
+<h4>¿Los datos se pierden si cierro el navegador?</h4>
+<p>No, los datos se guardan automáticamente en el servidor cada vez que realizas un cambio. El cierre del navegador no afecta a los datos guardados. Sin embargo, deberás volver a iniciar sesión al abrir la aplicación de nuevo.</p>
+
+<h4>¿Puedo usar la aplicación sin conexión a internet?</h4>
+<p>No, la aplicación requiere conexión a internet para funcionar. Los datos se cargan desde el servidor y se guardan en tiempo real.</p>
+
+<h4>¿Cómo se hace una copia de seguridad?</h4>
+<p>Las copias de seguridad se realizan automáticamente cada vez que se guardan datos. El administrador puede descargar backups desde la API o exportar los datos en formato CSV desde la sección de informes.</p>
+
+<h4>¿Puedo cambiar mi NIF/contraseña?</h4>
+<p>Tu NIF no puede cambiarse. La contraseña se cambia automáticamente en el primer inicio de sesión. Para cambiarla de nuevo, contacta con el administrador.</p>
+
+<h4>¿Qué hago si veo un error 401 o 429?</h4>
+<ul>
+  <li><strong>401 (No autorizado):</strong> Tu sesión ha expirado. Cierra sesión y vuelve a iniciarla</li>
+  <li><strong>429 (Demasiadas peticiones):</strong> Has superado el límite de peticiones. Espera un minuto y vuelve a intentarlo</li>
+</ul>
+</div>
+
+<div class="page">
+<h2>Resumen de atajos y convenciones</h2>
+
+<table>
+  <tr><th>Elemento</th><th>Significado</th></tr>
+  <tr><td><span class="badge badge-admin">Administrador</span></td><td>Usuario con permisos completos</td></tr>
+  <tr><td><span class="badge badge-employee">Empleado</span></td><td>Usuario con permisos básicos</td></tr>
+  <tr><td>✏️</td><td>Editar elemento</td></tr>
+  <tr><td>🗑️</td><td>Eliminar elemento</td></tr>
+  <tr><td>📅</td><td>Añadir vacaciones</td></tr>
+  <tr><td>☀️/🌙</td><td>Alternar modo claro/oscuro</td></tr>
+  <tr><td>1234****A</td><td>NIF enmascarado (formato de visualización segura)</td></tr>
+  <tr><td>"—"</td><td>Dato no disponible u oculto por permisos</td></tr>
+  <tr><td>"‖"</td><td>Jornada en curso (sin hora de fin)</td></tr>
+</table>
+
+<h3>Convenciones de la interfaz</h3>
+<ul>
+  <li>Los campos obligatorios no tienen indicador especial; si falta un campo requerido, el sistema muestra un mensaje de error</li>
+  <li>Los botones deshabilitados indican que no tienes permisos para realizar esa acción</li>
+  <li>Las tablas ordenables lo indican con flechas en los encabezados</li>
+  <li>Los mensajes de éxito/error se muestran como notificaciones temporales en la esquina superior derecha</li>
+  <li>Los datos sensibles (NIF de otros usuarios) siempre aparecen enmascarados para empleados</li>
+</ul>
+</div>
+
+<div class="footer">
+  <p>Tempo — Gestión de tiempo de empleados</p>
+  <p>Desarrollado por <strong>Molotov Cóctel Creativo</strong></p>
+  <p>Manual generado en mayo de 2026</p>
+</div>
+
+</body>
+</html>

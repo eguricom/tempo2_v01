@@ -78,12 +78,14 @@ export function SegmentChips({
   size = "sm",
   withDuration = false,
   onSegmentChange,
+  avatarColor,
   onSegmentClick,
 }: {
   segments?: ShiftSegment[];
   size?: "xs" | "sm";
   withDuration?: boolean;
   onSegmentChange?: (id: string, patch: Partial<ShiftSegment>) => void;
+  avatarColor?: string;
   onSegmentClick?: (id: string) => void;
 }) {
   if (!segments || segments.length === 0) {
@@ -92,7 +94,10 @@ export function SegmentChips({
   const ordered = [...segments].sort((a, b) => a.start.localeCompare(b.start));
   const cls = size === "xs" ? "text-[10px] px-1.5 py-0.5" : "text-[11px] px-2 py-0.5";
   return (
-    <div className="flex flex-wrap gap-1">
+    <div
+      className="flex flex-wrap gap-1"
+      style={avatarColor ? { borderLeft: '3px solid ' + avatarColor, paddingLeft: '6px' } : undefined}
+  >
       {ordered.map((s) => {
         const editable = !!onSegmentChange;
         return (
