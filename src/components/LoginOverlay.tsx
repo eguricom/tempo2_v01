@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Clock, Eye, EyeOff, HelpCircle, Timer, Upload } from "lucide-react";
+import { Clock, Eye, EyeOff, HelpCircle, Timer, Upload, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 export function LoginOverlay() {
@@ -20,6 +20,10 @@ export function LoginOverlay() {
   const sessionCount = useAppStore((s) => s.sessionCount);
   const forcePwChangeUserId = useAppStore((s) => s.forcePasswordChangeUserId);
   const users = useAppStore((s) => s.users);
+
+  if (users.length === 0) {
+    return <BlockedOverlay />;
+  }
 
   if (forcePwChangeUserId) {
     const user = users.find((u) => u.id === forcePwChangeUserId);
@@ -29,6 +33,130 @@ export function LoginOverlay() {
   if (sessionUserId) return null;
 
   return <LoginForm key={sessionCount} />;
+}
+
+function BlockedOverlay() {
+  const [code, setCode] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+
+  const handleUnlock = () => {
+    const unlockCode = import.meta.env.VITE_UNLOCK_CODE || "tempo-molotov-2024";
+    if (code.trim() === unlockCode) {
+      setUnlocked(true);
+    } else {
+      toast.error("Código incorrecto");
+    }
+  };
+
+  if (unlocked) {
+    return <SetupForm />;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-background/40 backdrop-blur-xl p-2 sm:p-4">
+      <Card className="w-full max-w-xs sm:max-w-sm shadow-2xl my-auto">
+        <CardHeader className="space-y-1 sm:space-y-2 text-center px-3 sm:px-6 pt-4 sm:pt-6">
+          <div className="mx-auto flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Lock className="h-6 w-6 sm:h-8 sm:w-8" />
+          </div>
+          <CardTitle className="text-sm sm:text-base">Tempo</CardTitle>
+          <p className="text-xs text-muted-foreground">By Molotov Cóctel Creativo SLU</p>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+          <p className="text-xs sm:text-sm text-center text-muted-foreground mb-4">
+            Esta aplicación está bloqueada. Introduce el código de desbloqueo para configurar el acceso.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              type="password"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Código de desbloqueo"
+              className="h-8 text-sm flex-1"
+              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+            />
+            <Button size="sm" onClick={handleUnlock} className="h-8">
+              Desbloquear
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SetupForm() {
+  const addUser = useAppStore((s) => s.addUser);
+
+  const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [nif, setNif] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !lastName.trim() || !email.trim() || !nif.trim()) {
+      toast.error("Rellena todos los campos");
+      return;
+    }
+    addUser({
+      name: name.trim(),
+      lastName: lastName.trim(),
+      secondLastName: "",
+      nif: nif.trim(),
+      email: email.trim(),
+      companyEmail: email.trim(),
+      phone: "",
+      address: { street: "", floor: "", postalCode: "", city: "" },
+      role: "admin",
+      department: "",
+      weeklyHours: 37.5,
+      vacationDaysTotal: 22,
+      schedule: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
+      consent: true,
+      permissions: {
+        bulk_add: true, edit_shifts: true, export: true,
+        manage_users: true, manage_absences: true, manage_config: true, magic_balance: true,
+      },
+    });
+    toast.success("Administrador creado. Ya puedes iniciar sesión con tu NIF.");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-background/40 backdrop-blur-xl p-2 sm:p-4">
+      <Card className="w-full max-w-xs sm:max-w-sm shadow-2xl my-auto">
+        <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6">
+          <CardTitle className="text-sm sm:text-base">Configurar administrador</CardTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Crea el usuario administrador para acceder a la aplicación.
+          </p>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-y-[20px]">
+            <div className="grid gap-y-[5px]">
+              <Label className="text-xs">Nombre</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-sm" autoFocus />
+            </div>
+            <div className="grid gap-y-[5px]">
+              <Label className="text-xs">Primer apellido</Label>
+              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div className="grid gap-y-[5px]">
+              <Label className="text-xs">Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div className="grid gap-y-[5px]">
+              <Label className="text-xs">NIF (se usa como contraseña en el primer acceso)</Label>
+              <Input value={nif} onChange={(e) => setNif(e.target.value)} className="h-8 text-sm" />
+            </div>
+            <Button type="submit" className="w-full h-8 text-xs sm:text-sm">
+              Crear administrador
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function LoginForm() {
@@ -92,7 +220,8 @@ function LoginForm() {
               <Timer className="h-2.5 w-2.5 sm:h-4 sm:w-4" />
             </div>
           </div>
-          <CardTitle className="text-sm sm:text-base">Iniciar sesión</CardTitle>
+          <CardTitle className="text-sm sm:text-base">Tempo</CardTitle>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">By Molotov Cóctel Creativo SLU</p>
         </CardHeader>
         <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
           <form onSubmit={submit} className="flex flex-col gap-y-[20px]">
@@ -132,7 +261,7 @@ function LoginForm() {
               Recordar credenciales
             </button>
             <button type="button" onClick={() => setHelpOpen(!helpOpen)} className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
-              <HelpCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> Ayuda
+              <HelpCircle className="h-2.5 w-2.5 sm:h-3 sm:h-3" /> Ayuda
             </button>
           </div>
           {helpOpen && (

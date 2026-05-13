@@ -81,6 +81,9 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t p-3 space-y-1">
+        <div className="group-data-[collapsible=icon]:hidden px-2 py-1">
+          <p className="text-[10px] text-muted-foreground leading-tight">By Molotov Cóctel Creativo SLU</p>
+        </div>
         {sessionUserId && (
           <button
             onClick={() => { logout(); toast.success("Sesión cerrada"); }}

@@ -212,93 +212,13 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 const emptySchedule = (): WeeklySchedule => ({ 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] });
 
-const standardSchedule = (): WeeklySchedule => {
-  const weekDay = (): ShiftSegment[] => [
-    { id: uid(), type: "work", start: "08:30", end: "14:00" },
-    { id: uid(), type: "break", start: "14:00", end: "16:00" },
-    { id: uid(), type: "work", start: "16:00", end: "18:30" },
-  ];
-  const friday = (): ShiftSegment[] => [
-    { id: uid(), type: "work", start: "08:30", end: "14:00" },
-  ];
-  return { 0: [], 1: weekDay(), 2: weekDay(), 3: weekDay(), 4: weekDay(), 5: friday(), 6: [] };
-};
-
 const emptyAddress = (): Address => ({ street: "", floor: "", postalCode: "", city: "" });
 
-const commonAddress: Address = { street: "Calle Zalaeta 4", floor: "", postalCode: "15002", city: "A Coruña" };
+const seedUsers: User[] = [];
 
-const seedUsers: User[] = [
-  { id: "u1", name: "Elena Mariana", lastName: "Rodríguez", secondLastName: "de Abásolo", nif: "12345678M", email: "elena@molotov.es", companyEmail: "elena@molotov.es", phone: "981 142 254", address: commonAddress, role: "admin", department: "Gerencia", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), avatarColor: "#6366f1", consent: true, permissions: { bulk_add: true, edit_shifts: true, export: true, manage_users: true, manage_absences: true, manage_config: true, magic_balance: true } },
-  { id: "u2", name: "Eduardo", lastName: "Gutiérrez", secondLastName: "Ríos", nif: "12345678M", email: "arte.02@molotov.es", companyEmail: "arte.02@molotov.es", phone: "981 142 254", address: commonAddress, role: "employee", department: "Diseño", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), avatarColor: "#10b981", consent: true, permissions: { bulk_add: true, edit_shifts: true, export: true, manage_users: true, manage_absences: true, manage_config: true, magic_balance: true } },
-  { id: "u3", name: "Xan", lastName: "Domínguez", secondLastName: "García", nif: "12345678M", email: "xan@molotov.es", companyEmail: "xan@molotov.es", phone: "981 142 254", address: commonAddress, role: "employee", department: "Dirección Creativa", weeklyHours: 37.5, vacationDaysTotal: 22, schedule: standardSchedule(), avatarColor: "#f59e0b", consent: true, permissions: { bulk_add: true, edit_shifts: true, export: true, manage_users: true, manage_absences: true, manage_config: true, magic_balance: true } },
-];
+const seedHolidays: Holiday[] = [];
 
-const seedHolidays: Holiday[] = [
-  // ======== 2024 ========
-  { id: "h24-01", date: "2024-01-01", name: "Año Nuevo", scope: "national", color: "#ef4444" },
-  { id: "h24-02", date: "2024-01-06", name: "Epifanía del Señor", scope: "national", color: "#ef4444" },
-  { id: "h24-03", date: "2024-03-28", name: "Jueves Santo", scope: "national", color: "#ef4444" },
-  { id: "h24-04", date: "2024-03-29", name: "Viernes Santo", scope: "national", color: "#ef4444" },
-  { id: "h24-05", date: "2024-05-01", name: "Día del Trabajo", scope: "national", color: "#ef4444" },
-  { id: "h24-06", date: "2024-08-15", name: "Asunción de la Virgen", scope: "national", color: "#ef4444" },
-  { id: "h24-07", date: "2024-10-12", name: "Fiesta Nacional de España", scope: "national", color: "#ef4444" },
-  { id: "h24-08", date: "2024-11-01", name: "Todos los Santos", scope: "national", color: "#ef4444" },
-  { id: "h24-09", date: "2024-12-06", name: "Día de la Constitución", scope: "national", color: "#ef4444" },
-  { id: "h24-10", date: "2024-12-08", name: "Inmaculada Concepción", scope: "national", color: "#ef4444" },
-  { id: "h24-11", date: "2024-12-25", name: "Natividad del Señor", scope: "national", color: "#ef4444" },
-  // Galicia 2024
-  { id: "h24-12", date: "2024-04-01", name: "Lunes de Pascua", scope: "regional", color: "#f97316" },
-  { id: "h24-13", date: "2024-05-17", name: "Día das Letras Galegas", scope: "regional", color: "#f97316" },
-  { id: "h24-14", date: "2024-07-25", name: "Día de Galicia / Santiago Apóstol", scope: "regional", color: "#f97316" },
-  // A Coruña 2024
-  { id: "h24-15", date: "2024-06-24", name: "San Juan", scope: "local", color: "#3b82f6" },
-
-  // ======== 2025 ========
-  { id: "h25-01", date: "2025-01-01", name: "Año Nuevo", scope: "national", color: "#ef4444" },
-  { id: "h25-02", date: "2025-01-06", name: "Epifanía del Señor", scope: "national", color: "#ef4444" },
-  { id: "h25-03", date: "2025-04-17", name: "Jueves Santo", scope: "national", color: "#ef4444" },
-  { id: "h25-04", date: "2025-04-18", name: "Viernes Santo", scope: "national", color: "#ef4444" },
-  { id: "h25-05", date: "2025-05-01", name: "Día del Trabajo", scope: "national", color: "#ef4444" },
-  { id: "h25-06", date: "2025-08-15", name: "Asunción de la Virgen", scope: "national", color: "#ef4444" },
-  { id: "h25-07", date: "2025-10-12", name: "Fiesta Nacional de España", scope: "national", color: "#ef4444" },
-  { id: "h25-08", date: "2025-11-01", name: "Todos los Santos", scope: "national", color: "#ef4444" },
-  { id: "h25-09", date: "2025-12-06", name: "Día de la Constitución", scope: "national", color: "#ef4444" },
-  { id: "h25-10", date: "2025-12-08", name: "Inmaculada Concepción", scope: "national", color: "#ef4444" },
-  { id: "h25-11", date: "2025-12-25", name: "Natividad del Señor", scope: "national", color: "#ef4444" },
-  // Galicia 2025
-  { id: "h25-12", date: "2025-04-21", name: "Lunes de Pascua", scope: "regional", color: "#f97316" },
-  { id: "h25-13", date: "2025-05-17", name: "Día das Letras Galegas", scope: "regional", color: "#f97316" },
-  { id: "h25-14", date: "2025-07-25", name: "Día de Galicia / Santiago Apóstol", scope: "regional", color: "#f97316" },
-  // A Coruña 2025
-  { id: "h25-15", date: "2025-06-24", name: "San Juan", scope: "local", color: "#3b82f6" },
-
-  // ======== 2026 ========
-  { id: "h26-01", date: "2026-01-01", name: "Año Nuevo", scope: "national", color: "#ef4444" },
-  { id: "h26-02", date: "2026-01-06", name: "Epifanía del Señor", scope: "national", color: "#ef4444" },
-  { id: "h26-03", date: "2026-04-02", name: "Jueves Santo", scope: "national", color: "#ef4444" },
-  { id: "h26-04", date: "2026-04-03", name: "Viernes Santo", scope: "national", color: "#ef4444" },
-  { id: "h26-05", date: "2026-05-01", name: "Día del Trabajo", scope: "national", color: "#ef4444" },
-  { id: "h26-06", date: "2026-08-15", name: "Asunción de la Virgen", scope: "national", color: "#ef4444" },
-  { id: "h26-07", date: "2026-10-12", name: "Fiesta Nacional de España", scope: "national", color: "#ef4444" },
-  { id: "h26-08", date: "2026-11-01", name: "Todos los Santos", scope: "national", color: "#ef4444" },
-  { id: "h26-09", date: "2026-12-06", name: "Día de la Constitución", scope: "national", color: "#ef4444" },
-  { id: "h26-10", date: "2026-12-08", name: "Inmaculada Concepción", scope: "national", color: "#ef4444" },
-  { id: "h26-11", date: "2026-12-25", name: "Natividad del Señor", scope: "national", color: "#ef4444" },
-  // Galicia 2026
-  { id: "h26-12", date: "2026-04-06", name: "Lunes de Pascua", scope: "regional", color: "#f97316" },
-  { id: "h26-13", date: "2026-05-17", name: "Día das Letras Galegas", scope: "regional", color: "#f97316" },
-  { id: "h26-14", date: "2026-07-25", name: "Día de Galicia / Santiago Apóstol", scope: "regional", color: "#f97316" },
-  // A Coruña 2026
-  { id: "h26-15", date: "2026-06-24", name: "San Juan", scope: "local", color: "#3b82f6" },
-];
-
-const seedDepartments: Department[] = [
-  { id: "d1", name: "Gerencia", color: "#c4b5fd" },
-  { id: "d2", name: "Diseño", color: "#86efac" },
-  { id: "d3", name: "Dirección Creativa", color: "#93c5fd" },
-  { id: "d4", name: "Otro", color: "#d4d4d8" },
-];
+const seedDepartments: Department[] = [];
 
 export function normalize(s: string) {
   return s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -367,37 +287,6 @@ export function canEditShiftDate(dateISO: string, devMode: boolean): boolean {
   return diffDays >= 0 && diffDays <= 7;
 }
 
-function generateSeedShifts(): Shift[] {
-  const out: Shift[] = [];
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  for (const user of seedUsers) {
-    const dates = eachDateBetween("2024-01-01", todayStr);
-    for (const date of dates) {
-      if (seedHolidays.some((h) => h.date === date)) continue;
-      const dow = new Date(date + "T12:00:00").getDay();
-      const tmpl = user.schedule?.[dow] ?? [];
-      const works = tmpl.filter((s) => s.type === "work");
-      if (works.length === 0) continue;
-      const ordered = [...tmpl].sort((a, b) => a.start.localeCompare(b.start));
-      const segs = ordered.map((s) => ({ ...s, id: uid() }));
-      const startTime = ordered[0].start;
-      const endTime = ordered[ordered.length - 1].end;
-      out.push({
-        id: uid(),
-        userId: user.id,
-        date,
-        start: new Date(`${date}T${startTime}:00`).toISOString(),
-        end: new Date(`${date}T${endTime}:00`).toISOString(),
-        status: "finished",
-        segments: segs,
-        actorId: user.id,
-      });
-    }
-  }
-  return out;
-}
-
 function savePasswordHash(userId: string, hash: string) {
   try {
     const all = JSON.parse(localStorage.getItem("tempo-pwd") || "{}");
@@ -429,8 +318,6 @@ function saveUsersToLocal(users: User[]) {
 let _hydrating = true;
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-const initialUsers = applyPasswordHashes(seedUsers);
-
 // Intentar cargar desde localStorage en la inicialización
 function loadInitialState(): Partial<AppState> {
   try {
@@ -458,8 +345,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   devModeLastActivity: 0,
   forcePasswordChangeUserId: null,
 
-  users: (initialState.users as User[]) ?? initialUsers,
-  shifts: (initialState.shifts as Shift[]) ?? generateSeedShifts(),
+  users: (initialState.users as User[]) ?? [],
+  shifts: (initialState.shifts as Shift[]) ?? [],
   absences: [],
   departments: seedDepartments,
   holidays: seedHolidays,
