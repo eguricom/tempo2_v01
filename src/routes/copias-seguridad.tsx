@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAppStore, apiUrl, shiftMinutes, type Shift } from "@/lib/store";
+import { useAppStore, apiUrl, shiftMinutes, authHeaders, type Shift } from "@/lib/store";
 import { exportShiftsExcelMulti, exportShiftsCSV } from "@/lib/export";
 import { Download, Upload, RotateCcw, RefreshCw, HardDrive, AlertTriangle, FileText, Table2 } from "lucide-react";
 import { toast } from "sonner";
@@ -69,7 +69,7 @@ function CopiasSeguridadPage() {
       const data = { currentUserId, users, shifts, absences, departments, holidays, vacations, freeDays, absenceTypes, companyLogo, config, auditLog };
       const res = await fetch(apiUrl("/api/backup.php"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -85,7 +85,7 @@ function CopiasSeguridadPage() {
 
   const downloadBackup = (name: string) => {
     const url = apiUrl(`/api/backup.php?file=${encodeURIComponent(name)}`);
-    fetch(url)
+    fetch(url, { headers: authHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error();
         return r.blob();
@@ -106,7 +106,7 @@ function CopiasSeguridadPage() {
     try {
       const res = await fetch(apiUrl(`/api/backup.php?action=restore`), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ file: name }),
       });
       if (!res.ok) throw new Error("Error al restaurar");
